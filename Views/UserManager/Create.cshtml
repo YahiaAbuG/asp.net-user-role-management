@@ -1,49 +1,51 @@
-﻿@model WebApplication5.Models.ApplicationUser
+﻿@*@using WebApplication5.Models
+@model ApplicationUser
 
 @{
-    ViewData["Title"] = "Create User";
-}
+     ViewData["Title"] = "Create User";
+ } 
 
-<h2>Create User</h2>
+ <h2>Create User</h2> 
 
-<form asp-action="Create" method="post">
-    <div class="form-group">
-        <label asp-for="Email" class="control-label"></label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label for="Password" class="control-label">Password</label>
-        <input id="Password" name="password" class="form-control" type="password" />
-        <span asp-validation-for="Password" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="FirstName" class="control-label"></label>
-        <input asp-for="FirstName" class="form-control" />
-        <span asp-validation-for="FirstName" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label asp-for="LastName" class="control-label"></label>
-        <input asp-for="LastName" class="form-control" />
-        <span asp-validation-for="LastName" class="text-danger"></span>
-    </div>
-    <div class="form-group">
-        <label for="Role" class="control-label">Role</label>
-        <select id="Role" name="role" class="form-control">
-            <option value="">Select a role</option>
-            @foreach (var role in (SelectList)ViewBag.Roles)
-            {
-                <option value="@role.Value">@role.Text</option>
-            }
-        </select>
-    </div>
-    <div class="form-group">
-        <input type="submit" value="Create" class="btn btn-primary" />
-    </div>
-</form>
+ <form asp-action="Create" method="post"> 
+     <div class="form-group"> 
+         <label asp-for="Email" class="control-label"></label> 
+         <input asp-for="Email" class="form-control" /> 
+         <span asp-validation-for="Email" class="text-danger"></span> 
+     </div> 
+     <div class="form-group"> 
+         <label for="Password" class="control-label">Password</label> 
+         <input id="Password" name="password" class="form-control" type="password" /> 
+         <span asp-validation-for="Password" class="text-danger"></span> 
+     </div> 
+     <div class="form-group"> 
+         <label asp-for="FirstName" class="control-label"></label> 
+         <input asp-for="FirstName" class="form-control" /> 
+         <span asp-validation-for="FirstName" class="text-danger"></span> 
+     </div> 
+     <div class="form-group"> 
+         <label asp-for="LastName" class="control-label"></label> 
+         <input asp-for="LastName" class="form-control" /> 
+         <span asp-validation-for="LastName" class="text-danger"></span> 
+     </div> 
+     <div class="form-group"> 
+         <label for="Role" class="control-label">Role</label> 
+         <select id="Role" name="role" class="form-control"> 
+             <option value="">Select a role</option> 
+             @foreach (var role in (SelectList)ViewBag.Roles) 
+             { 
+                 <option value="@role.Value">@role.Text</option> 
+             } 
+         </select> 
+     </div> 
+     <div class="form-group"> 
+         <input type="submit" value="Create" class="btn btn-primary" /> 
+     </div> 
+ </form> 
 
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}
+ @section Scripts { 
+     @{ 
+         await Html.RenderPartialAsync("_ValidationScriptsPartial"); 
+     } 
+ } 
+*@

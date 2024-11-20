@@ -17,6 +17,7 @@
         <tr>
             <th>Id</th>
             <th>Role</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -25,6 +26,9 @@
             <tr>
                 <td>@role.Id</td>
                 <td>@role.Name</td>
+                <td>
+                    <a asp-action="EditRole" asp-route-id="@role.Id" class="btn btn-primary">Edit</a>
+                </td>
             </tr>
         }
     </tbody>
