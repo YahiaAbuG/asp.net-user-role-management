@@ -1,5 +1,4 @@
-﻿@using Microsoft.AspNetCore.Identity
-@model IdentityRole
+﻿@model EditRoleViewModel
 
 @{
     ViewData["Title"] = "Edit Role";
@@ -25,5 +24,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

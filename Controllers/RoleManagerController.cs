@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using WebApplication5.Models;
 
 namespace WebApplication5.Controllers
 {
@@ -43,24 +44,30 @@ namespace WebApplication5.Controllers
                 return NotFound();
             }
 
-            return View(role);
+            var model = new EditRoleViewModel
+            {
+                Id = role.Id,
+                Name = role.Name
+            };
+
+            return View(model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditRole(string id, string roleName)
+        public async Task<IActionResult> EditRole(EditRoleViewModel model)
         {
-            if (id == null || roleName == null)
+            if (model.Id == null || model.Name == null)
             {
                 return BadRequest();
             }
 
-            var role = await _roleManager.FindByIdAsync(id);
+            var role = await _roleManager.FindByIdAsync(model.Id);
             if (role == null)
             {
                 return NotFound();
             }
 
-            role.Name = roleName;
+            role.Name = model.Name;
             var result = await _roleManager.UpdateAsync(role);
 
             if (result.Succeeded)
@@ -73,6 +80,44 @@ namespace WebApplication5.Controllers
                 ModelState.AddModelError(string.Empty, error.Description);
             }
 
+            return View(model);
+        }
+
+        public async Task<IActionResult> DeleteRole(string id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+            var role = await _roleManager.FindByIdAsync(id);
+            if (role == null)
+            {
+                return NotFound();
+            }
+            return View(role);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteRoleConfirmed(string id)
+        {
+            if (id == null)
+            {
+                return BadRequest();
+            }
+            var role = await _roleManager.FindByIdAsync(id);
+            if (role == null)
+            {
+                return NotFound();
+            }
+            var result = await _roleManager.DeleteAsync(role);
+            if (result.Succeeded)
+            {
+                return RedirectToAction("Index");
+            }
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
             return View(role);
         }
     }

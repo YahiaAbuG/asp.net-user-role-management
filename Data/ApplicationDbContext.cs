@@ -48,5 +48,6 @@ namespace WebApplication5.Data
 
             }
         }
+        public DbSet<WebApplication5.Models.EditRoleViewModel> EditRoleViewModel { get; set; } = default!;
     }
 }
