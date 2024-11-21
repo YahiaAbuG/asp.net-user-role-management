@@ -4,10 +4,13 @@
     ViewData["Title"] = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<h1>User Roles</h1>
-<br />
-<a asp-action="Create" class="btn btn-primary">Create User</a>
-<br />
+<h1>Users</h1>
+@if (User.IsInRole("Admin"))
+{
+    <br />
+    <a asp-action="Create" class="btn btn-primary">Create User</a>
+    <br />
+}
 <table class="table table-striped">
     <thead>
         <tr>
@@ -15,7 +18,10 @@
             <th>Username</th>
             <th>Email</th>
             <th>Roles</th>
-            <th>Action</th>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <th>Action</th>
+            }
         </tr>
     </thead>
     <tbody>
@@ -26,10 +32,13 @@
                 <td>@user.UserName</td>
                 <td>@user.Email</td>
                 <td>@string.Join(" , ", user.Roles.ToList())</td>
-                <td>
-                    <a class="btn btn-primary" asp-controller="UserManager" asp-action="Manage" asp-route-userId="@user.UserId">Manage</a>
-                    <a class="btn btn-danger" asp-controller="UserManager" asp-action="Delete" asp-route-userId="@user.UserId">Delete</a>
-                </td>
+                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                {
+                    <td>
+                        <a class="btn btn-primary" asp-controller="UserManager" asp-action="Manage" asp-route-userId="@user.UserId">Manage</a>
+                        <a class="btn btn-danger" asp-controller="UserManager" asp-action="Delete" asp-route-userId="@user.UserId">Delete</a>
+                    </td>
+                }
             </tr>
         }
     </tbody>
