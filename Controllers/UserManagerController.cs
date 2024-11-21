@@ -23,12 +23,15 @@ namespace WebApplication5.Controllers
             var userRolesViewModel = new List<UserRolesViewModel>();
             foreach (ApplicationUser user in users)
             {
-                var thisViewModel = new UserRolesViewModel();
-                thisViewModel.UserId = user.Id;
-                thisViewModel.Email = user.Email;
-                thisViewModel.FirstName = user.FirstName;
-                thisViewModel.LastName = user.LastName;
-                thisViewModel.Roles = await GetUserRoles(user);
+                var thisViewModel = new UserRolesViewModel
+                {
+                    UserId = user.Id,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Roles = await GetUserRoles(user)
+                };
                 userRolesViewModel.Add(thisViewModel);
             }
             return View(userRolesViewModel);
@@ -129,7 +132,6 @@ namespace WebApplication5.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-        // GET: UserManager/Create
         public async Task<IActionResult> Create()
         {
             var roles = await _roleManager.Roles.ToListAsync();
@@ -137,26 +139,25 @@ namespace WebApplication5.Controllers
             return View();
         }
 
-        // POST: UserManager/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ApplicationUser model, string password, string role)
+        public async Task<IActionResult> Create(CreateUserViewModel model)
         {
             if (ModelState.IsValid)
             {
                 var user = new ApplicationUser
                 {
-                    UserName = model.Email,
+                    UserName = model.UserName,
                     Email = model.Email,
                     FirstName = model.FirstName,
                     LastName = model.LastName
                 };
-                var result = await _userManager.CreateAsync(user, password);
+                var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                    if (!string.IsNullOrEmpty(role))
+                    if (!string.IsNullOrEmpty(model.Role))
                     {
-                        await _userManager.AddToRoleAsync(user, role);
+                        await _userManager.AddToRoleAsync(user, model.Role);
                     }
                     return RedirectToAction(nameof(Index));
                 }
@@ -169,6 +170,7 @@ namespace WebApplication5.Controllers
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
             return View(model);
         }
+
 
 
 
