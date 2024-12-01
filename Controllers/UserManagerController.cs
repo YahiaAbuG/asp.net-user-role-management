@@ -46,7 +46,6 @@ namespace WebApplication5.Controllers
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Manage(string userId)
         {
-            ViewBag.userId = userId;
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
@@ -134,7 +133,7 @@ namespace WebApplication5.Controllers
                 return View(user);
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index");
         }
 
         [Authorize(Roles = "Admin")]
@@ -178,7 +177,77 @@ namespace WebApplication5.Controllers
             return View(model);
         }
 
+        // GET
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
+                return View("NotFound");
+            }
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var model = new EditUserViewModel
+            {
+                Id = user.Id,
+                Email = user.Email,
+                UserName = user.UserName,
+                FirstName = user.FirstName,
+                LastName = user.LastName
+            };
+            return View(model);
+        }
 
+        // POST
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(EditUserViewModel model)
+        {
+            var user = await _userManager.FindByIdAsync(model.Id);
+            if (user == null)
+            {
+                ViewBag.ErrorMessage = $"User with Id = {model.Id} cannot be found";
+                return View("NotFound");
+            }
+
+            // Check if the username already exists
+            var userWithSameUserName = await _userManager.Users
+                .FirstOrDefaultAsync(u => u.UserName == model.UserName && u.Id != model.Id);
+            if (userWithSameUserName != null)
+            {
+                ModelState.AddModelError("UserName", "Username already exists");
+            }
+
+            //// Check if the email already exists
+            //var userWithSameEmail = await _userManager.Users
+            //    .FirstOrDefaultAsync(u => u.Email == model.Email && u.Id != model.Id);
+            //if (userWithSameEmail != null)
+            //{
+            //    ModelState.AddModelError("Email", "Email already exists");
+            //}
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            //user.Email = model.Email;
+            user.UserName = model.UserName;
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                return RedirectToAction("Index");
+            }
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
+            }
+            return View(model);
+        }
 
 
     }

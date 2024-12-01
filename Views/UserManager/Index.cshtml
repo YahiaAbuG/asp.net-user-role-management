@@ -37,6 +37,7 @@
                 @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                 {
                     <td>
+                        <a class="btn btn-primary" asp-controller="UserManager" asp-action="Edit" asp-route-userId="@user.UserId">Edit</a>
                         <a class="btn btn-primary" asp-controller="UserManager" asp-action="Manage" asp-route-userId="@user.UserId">Manage</a>
                         <a class="btn btn-danger" asp-controller="UserManager" asp-action="Delete" asp-route-userId="@user.UserId">Delete</a>
                     </td>
