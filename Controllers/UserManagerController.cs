@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -9,11 +10,13 @@ namespace WebApplication5.Controllers
 {
     public class UserManagerController : Controller
     {
+        private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
-        public UserManagerController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public UserManagerController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper)
         {
+            _mapper = mapper;
             _roleManager = roleManager;
             _userManager = userManager;
         }
@@ -21,20 +24,14 @@ namespace WebApplication5.Controllers
         public async Task<IActionResult> Index()
         {
             var users = await _userManager.Users.ToListAsync();
-            var userRolesViewModel = new List<UserRolesViewModel>();
-            foreach (ApplicationUser user in users)
+            var userRolesViewModel = _mapper.Map<List<UserRolesViewModel>>(users);
+
+            foreach (var userViewModel in userRolesViewModel)
             {
-                var thisViewModel = new UserRolesViewModel
-                {
-                    UserId = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Roles = await GetUserRoles(user)
-                };
-                userRolesViewModel.Add(thisViewModel);
+                var user = users.First(u => u.Id == userViewModel.UserId);
+                userViewModel.Roles = await GetUserRoles(user);
             }
+
             return View(userRolesViewModel);
         }
 
@@ -53,24 +50,15 @@ namespace WebApplication5.Controllers
                 return View("NotFound");
             }
             ViewBag.UserName = user.UserName;
-            var model = new List<ManageUserRolesViewModel>();
-            foreach (var role in _roleManager.Roles)
+
+            var roles = await _roleManager.Roles.ToListAsync();
+            var model = _mapper.Map<List<ManageUserRolesViewModel>>(roles);
+
+            foreach (var roleViewModel in model)
             {
-                var userRolesViewModel = new ManageUserRolesViewModel
-                {
-                    RoleId = role.Id,
-                    RoleName = role.Name
-                };
-                if (await _userManager.IsInRoleAsync(user, role.Name))
-                {
-                    userRolesViewModel.Selected = true;
-                }
-                else
-                {
-                    userRolesViewModel.Selected = false;
-                }
-                model.Add(userRolesViewModel);
+                roleViewModel.Selected = await _userManager.IsInRoleAsync(user, roleViewModel.RoleName);
             }
+
             return View(model);
         }
 
@@ -151,13 +139,14 @@ namespace WebApplication5.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser
-                {
-                    UserName = model.UserName,
-                    Email = model.Email,
-                    FirstName = model.FirstName,
-                    LastName = model.LastName
-                };
+                //var user = new ApplicationUser
+                //{
+                //    UserName = model.UserName,
+                //    Email = model.Email,
+                //    FirstName = model.FirstName,
+                //    LastName = model.LastName
+                //};
+                var user = _mapper.Map<ApplicationUser>(model);
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
@@ -187,15 +176,15 @@ namespace WebApplication5.Controllers
                 ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
                 return View("NotFound");
             }
-            var userRoles = await _userManager.GetRolesAsync(user);
-            var model = new EditUserViewModel
-            {
-                Id = user.Id,
-                Email = user.Email,
-                UserName = user.UserName,
-                FirstName = user.FirstName,
-                LastName = user.LastName
-            };
+            var model = _mapper.Map<EditUserViewModel>(user);
+            //var model = new EditUserViewModel
+            //{
+            //    Id = user.Id,
+            //    Email = user.Email,
+            //    UserName = user.UserName,
+            //    FirstName = user.FirstName,
+            //    LastName = user.LastName
+            //};
             return View(model);
         }
 
@@ -234,9 +223,10 @@ namespace WebApplication5.Controllers
             }
 
             //user.Email = model.Email;
-            user.UserName = model.UserName;
-            user.FirstName = model.FirstName;
-            user.LastName = model.LastName;
+            //user.UserName = model.UserName;
+            //user.FirstName = model.FirstName;
+            //user.LastName = model.LastName;
+            _mapper.Map(model, user);
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
