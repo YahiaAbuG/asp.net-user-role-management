@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using WebApplication5.Models;
 
 namespace WebApplication5.Controllers
@@ -11,10 +11,12 @@ namespace WebApplication5.Controllers
     public class RoleManagerController : Controller
     {
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IMapper _mapper;
 
-        public RoleManagerController(RoleManager<IdentityRole> roleManager)
+        public RoleManagerController(RoleManager<IdentityRole> roleManager, IMapper mapper)
         {
             _roleManager = roleManager;
+            _mapper = mapper;
         }
 
         public async Task<IActionResult> Index()
@@ -46,11 +48,7 @@ namespace WebApplication5.Controllers
                 return NotFound();
             }
 
-            var model = new EditRoleViewModel
-            {
-                Id = role.Id,
-                Name = role.Name
-            };
+            var model = _mapper.Map<EditRoleViewModel>(role);
 
             return View(model);
         }
