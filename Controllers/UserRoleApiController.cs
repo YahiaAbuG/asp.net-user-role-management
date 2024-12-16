@@ -228,6 +228,20 @@ namespace WebApplication5.Controllers
             }
 
             var roles = await _userManager.GetRolesAsync(user);
+
+            if (!User.IsInRole("Admin") && roles.Contains("Admin"))
+            {
+                return BadRequest("Cannot modify roles for an Admin");
+            }
+
+            foreach (var modelRole in model)
+            {
+                if (!User.IsInRole("Admin") && modelRole.RoleName == "Admin" && (modelRole.Selected != roles.Contains("Admin")))
+                {
+                    return BadRequest("Cannot modify Admin role");
+                }
+            }
+
             var result = await _userManager.RemoveFromRolesAsync(user, roles);
             if (!result.Succeeded)
             {
