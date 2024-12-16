@@ -49,9 +49,26 @@ namespace WebApplication5.Controllers
                 ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
                 return View("NotFound");
             }
+
+            // Check if the user being managed has the "Admin" role
+            var isUserAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
+            // Check if the current user is an admin
+            var currentUser = await _userManager.GetUserAsync(User);
+            ViewBag.isCurrentUserAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+
+            // If the current user is not an admin and the user being managed is an admin, deny access
+            if (isUserAdmin && !ViewBag.isCurrentUserAdmin)
+            {
+                return Forbid();
+            }
+
             ViewBag.UserName = user.UserName;
 
             var roles = await _roleManager.Roles.ToListAsync();
+
+            ViewBag.AdminRoleId = (await _roleManager.FindByNameAsync("Admin"))?.Id;
+
             var model = _mapper.Map<List<ManageUserRolesViewModel>>(roles);
 
             foreach (var roleViewModel in model)
