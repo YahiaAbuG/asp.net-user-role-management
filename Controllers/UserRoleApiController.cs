@@ -14,7 +14,7 @@ namespace WebApplication5.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Manager")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class UserRoleApiController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -67,6 +67,7 @@ namespace WebApplication5.Controllers
 
         // GET: api/UserRoleApi/Users
         [HttpGet("Users")]
+        [Authorize]
         public async Task<IActionResult> GetUsers()
         {
             var users = await _userManager.Users.ToListAsync();
@@ -83,6 +84,7 @@ namespace WebApplication5.Controllers
 
         // GET: api/UserRoleApi/Roles
         [HttpGet("Roles")]
+        [Authorize]
         public async Task<IActionResult> GetRoles()
         {
             var roles = await _roleManager.Roles.ToListAsync();
@@ -91,6 +93,7 @@ namespace WebApplication5.Controllers
 
         // POST: api/UserRoleApi/AddUser
         [HttpPost("AddUser")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddUser([FromBody] CreateUserViewModel model)
         {
             if (ModelState.IsValid)
@@ -112,6 +115,7 @@ namespace WebApplication5.Controllers
 
         // POST: api/UserRoleApi/AddRole
         [HttpPost("AddRole")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddRole([FromBody] string roleName)
         {
             if (!string.IsNullOrEmpty(roleName))
@@ -128,6 +132,7 @@ namespace WebApplication5.Controllers
 
         // PUT: api/UserRoleApi/EditUser
         [HttpPut("EditUser")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EditUser([FromBody] EditUserViewModel model)
         {
             if (ModelState.IsValid)
@@ -151,6 +156,7 @@ namespace WebApplication5.Controllers
 
         // PUT: api/UserRoleApi/EditRole
         [HttpPut("EditRole")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EditRole([FromBody] EditRoleViewModel model)
         {
             if (ModelState.IsValid)
@@ -174,6 +180,7 @@ namespace WebApplication5.Controllers
 
         // DELETE: api/UserRoleApi/DeleteUser/{id}
         [HttpDelete("DeleteUser/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -192,6 +199,7 @@ namespace WebApplication5.Controllers
 
         // DELETE: api/UserRoleApi/DeleteRole/{id}
         [HttpDelete("DeleteRole/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteRole(string id)
         {
             var role = await _roleManager.FindByIdAsync(id);
@@ -210,6 +218,7 @@ namespace WebApplication5.Controllers
 
         // POST: api/UserRoleApi/ManageUserRoles
         [HttpPost("ManageUserRoles")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> ManageUserRoles([FromBody] List<ManageUserRolesViewModel> model, [FromQuery] string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
