@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using WebApplication5.Models.ViewModels;
 
 namespace WebApplication5.Controllers
 {

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using WebApplication5.Models.ViewModels;
 
 namespace WebApplication5.Models
 {

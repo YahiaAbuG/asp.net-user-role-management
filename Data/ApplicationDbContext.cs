@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Models;
+using WebApplication5.Models.ViewModels;
 
 namespace WebApplication5.Data
 {
@@ -48,6 +49,6 @@ namespace WebApplication5.Data
 
             }
         }
-        public DbSet<WebApplication5.Models.EditRoleViewModel> EditRoleViewModel { get; set; } = default!;
+        public DbSet<EditRoleViewModel> EditRoleViewModel { get; set; } = default!;
     }
 }

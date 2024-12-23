@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Models;
+using WebApplication5.Models.ViewModels;
 
 namespace WebApplication5.Controllers
 {
