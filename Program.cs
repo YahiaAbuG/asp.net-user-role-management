@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using WebApplication5.Data;
 using WebApplication5.Models;
+using WebApplication5.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +85,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers(); // Add this line to register API controllers
+
+builder.Services.AddScoped<JwtTokenService>();
 
 var app = builder.Build();
 

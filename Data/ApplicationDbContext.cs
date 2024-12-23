@@ -18,17 +18,32 @@ namespace WebApplication5.Data
         {
             base.OnModelCreating(builder);
 
-            // Seed roles
-            builder.Entity<IdentityRole>().HasData(
-                new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
-                new IdentityRole { Name = "Manager", NormalizedName = "MANAGER" },
-                new IdentityRole { Name = "Member", NormalizedName = "MEMBER" }
-            );
+            // Remove role seeding from here
+        }
+
+        public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
+        {
+            // Check if roles exist, if not, create them
+            if (!await roleManager.RoleExistsAsync("Admin"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+            if (!await roleManager.RoleExistsAsync("Manager"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Manager"));
+            }
+            if (!await roleManager.RoleExistsAsync("Member"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Member"));
+            }
         }
 
         public static async Task SeedDefaultAdminUserAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
+            // Seed roles
+            await SeedRolesAsync(roleManager);
 
+            // Create default admin user if it doesn't exist
             var defaultUser = new ApplicationUser
             {
                 UserName = "admin",
@@ -38,7 +53,8 @@ namespace WebApplication5.Data
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true
             };
-            if (userManager.Users.All(u => u.Id != defaultUser.Id))
+
+            if (userManager.Users.All(u => u.UserName != defaultUser.UserName))
             {
                 var user = await userManager.FindByEmailAsync(defaultUser.Email);
                 if (user == null)
@@ -46,9 +62,9 @@ namespace WebApplication5.Data
                     await userManager.CreateAsync(defaultUser, "Blud456");
                     await userManager.AddToRoleAsync(defaultUser, "Admin");
                 }
-
             }
         }
-        public DbSet<EditRoleViewModel> EditRoleViewModel { get; set; } = default!;
+
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
     }
 }
