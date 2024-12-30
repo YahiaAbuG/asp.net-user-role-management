@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -14,12 +15,14 @@ namespace WebApplication5.Controllers
         private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public UserManagerController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper)
+        public UserManagerController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper, IWebHostEnvironment webHostEnvironment)
         {
             _mapper = mapper;
             _roleManager = roleManager;
             _userManager = userManager;
+            _webHostEnvironment = webHostEnvironment;
         }
         [Authorize]
         public async Task<IActionResult> Index()
@@ -195,6 +198,7 @@ namespace WebApplication5.Controllers
                 return View("NotFound");
             }
             var model = _mapper.Map<EditUserViewModel>(user);
+            ViewBag.ProfileImagePath = user.ProfileImagePath;
             //var model = new EditUserViewModel
             //{
             //    Id = user.Id,
@@ -227,23 +231,31 @@ namespace WebApplication5.Controllers
                 ModelState.AddModelError("UserName", "Username already exists");
             }
 
-            //// Check if the email already exists
-            //var userWithSameEmail = await _userManager.Users
-            //    .FirstOrDefaultAsync(u => u.Email == model.Email && u.Id != model.Id);
-            //if (userWithSameEmail != null)
-            //{
-            //    ModelState.AddModelError("Email", "Email already exists");
-            //}
-
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            //user.Email = model.Email;
-            //user.UserName = model.UserName;
-            //user.FirstName = model.FirstName;
-            //user.LastName = model.LastName;
+            if (model.ProfileImage != null)
+            {
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+                var uniqueFileName = Guid.NewGuid().ToString() + "_" + model.ProfileImage.FileName;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.ProfileImage.CopyToAsync(fileStream);
+                }
+
+                var newPath = Path.Combine("~/images", uniqueFileName).Replace("\\", "/");
+
+                // Save the relative path to the user's profile
+                user.ProfileImagePath = newPath;
+            }
+
             _mapper.Map(model, user);
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
@@ -256,7 +268,5 @@ namespace WebApplication5.Controllers
             }
             return View(model);
         }
-
-
     }
 }

@@ -1,41 +1,48 @@
 ﻿@model WebApplication5.Models.ViewModels.EditUserViewModel
 @{
-	ViewData["Title"] = "Manage";
-	Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<form method="post">
-	<div class="card">
-		<div class="card-header">
-			<h2>Edit User Info</h2>
-		</div>
-		<div class="card-body">
-			<div class="form-group">
-				<label asp-for="Id"></label>
-				<input asp-for="Id" class="form-control" readonly />
-			</div>
-			<div class="form-group">
-				<label asp-for="Email"></label>
-				<input asp-for="Email" class="form-control" readonly />
-			</div>
-			<div class="form-group">
-				<label asp-for="UserName"></label>
-				<input asp-for="UserName" class="form-control" />
-			</div>
-			<div class="form-group">
-				<label asp-for="FirstName"></label>
-				<input asp-for="FirstName" class="form-control" />
-			</div>
-			<div class="form-group">
-				<label asp-for="LastName"></label>
-				<input asp-for="LastName" class="form-control" />
-			</div>
-			<div asp-validation-summary="All" class="text-danger"></div>
-		</div>
-		<div class="card-footer">
-			<input type="submit" value="Update" class="btn btn-primary"
-				   style="width:auto" />
-			<a asp-action="Index" class="btn btn-primary" style="width:auto">Cancel</a>
-		</div>
-	</div>
+<form method="post" enctype="multipart/form-data">
+    <div class="card">
+        <div class="card-header">
+            <h2>Edit User Info</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label asp-for="Id"></label>
+                <input asp-for="Id" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+                <label asp-for="Email"></label>
+                <input asp-for="Email" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+                <label asp-for="UserName"></label>
+                <input asp-for="UserName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="FirstName"></label>
+                <input asp-for="FirstName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="LastName"></label>
+                <input asp-for="LastName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="ProfileImage"></label>
+                <input asp-for="ProfileImage" type="file" class="form-control" />
+            </div>
+            <div class="form-group">
+                <p>@ViewBag.ProfileImagePath</p>
+                <img src="@Url.Content(ViewBag.ProfileImagePath)" alt="Profile Image" class="img-thumbnail" style="max-width: 200px;" />
+            </div>
+            <div asp-validation-summary="All" class="text-danger"></div>
+        </div>
+        <div class="card-footer">
+            <input type="submit" value="Update" class="btn btn-primary" style="width:auto" />
+            <a asp-action="Index" class="btn btn-primary" style="width:auto">Cancel</a>
+        </div>
+    </div>
 </form>

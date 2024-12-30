@@ -9,5 +9,6 @@ namespace WebApplication5.Models
         public string FirstName { get; set; }
         [Required]
         public string LastName { get; set; }
+        public string ProfileImagePath { get; set; } = "~/images/blank-profile.png";
     }
 }

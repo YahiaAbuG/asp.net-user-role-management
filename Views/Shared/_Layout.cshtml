@@ -1,6 +1,9 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@{
+    
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -129,7 +132,13 @@
                 <!-- Sidebar user panel (optional) -->
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <img src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png" class="img-circle elevation-2" alt="User Image">
+                        @if (SignInManager.IsSignedIn(User)) {
+                            var user = await UserManager.GetUserAsync(User);
+                            var path = user?.ProfileImagePath ?? "~/images/blank-profile.png";
+                            <img src="@Url.Content(path)" class="img-circle elevation-2" alt="User Image">
+                        } else {
+                            <img src="~/images/blank-profile.png" class="img-circle elevation-2" alt="User Image">
+                        }
                     </div>
                     <div class="info">
                         @if (SignInManager.IsSignedIn(User))
