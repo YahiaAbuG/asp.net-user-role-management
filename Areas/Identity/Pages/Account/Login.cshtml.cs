@@ -142,6 +142,17 @@ namespace WebApplication5.Areas.Identity.Pages.Account
                 var result = await _signInManager.PasswordSignInAsync(userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
+                    var user = await _userManager.FindByNameAsync(userName);
+                    if (user != null)
+                    {
+                        string qrDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/qrs");
+                        string filePath = Path.Combine(qrDirectory, $"{user.Id}.png");
+
+                        if (!System.IO.File.Exists(filePath))
+                        {
+                            user.GenerateQrCode();
+                        }
+                    }
                     _logger.LogInformation("User logged in.");
                     return LocalRedirect(returnUrl);
                 }

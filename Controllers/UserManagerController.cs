@@ -161,13 +161,6 @@ namespace WebApplication5.Controllers
         {
             if (ModelState.IsValid)
             {
-                //var user = new ApplicationUser
-                //{
-                //    UserName = model.UserName,
-                //    Email = model.Email,
-                //    FirstName = model.FirstName,
-                //    LastName = model.LastName
-                //};
                 var user = _mapper.Map<ApplicationUser>(model);
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
@@ -176,6 +169,9 @@ namespace WebApplication5.Controllers
                     {
                         await _userManager.AddToRoleAsync(user, model.Role);
                     }
+
+                    user.GenerateQrCode();
+
                     return RedirectToAction(nameof(Index));
                 }
                 foreach (var error in result.Errors)
@@ -285,6 +281,37 @@ namespace WebApplication5.Controllers
 
             // Create the zip file
             ZipFile.CreateFromDirectory(imagesFolder, zipFilePath);
+
+            // Read the zip file into a memory stream
+            var memoryStream = new MemoryStream();
+            using (var stream = new FileStream(zipFilePath, FileMode.Open))
+            {
+                await stream.CopyToAsync(memoryStream);
+            }
+            memoryStream.Position = 0;
+
+            // Delete the zip file from the server after reading it
+            System.IO.File.Delete(zipFilePath);
+
+            // Return the zip file as a download
+            return File(memoryStream, "application/zip", zipFileName);
+        }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DownloadQrs()
+        {
+            var qrsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "qrs");
+            if (!Directory.Exists(qrsFolder))
+            {
+                ViewBag.ErrorMessage = "QRs folder not found.";
+                return View("NotFound");
+            }
+
+            var zipFileName = "qrs.zip";
+            var zipFilePath = Path.Combine(_webHostEnvironment.WebRootPath, zipFileName);
+
+            // Create the zip file
+            ZipFile.CreateFromDirectory(qrsFolder, zipFilePath);
 
             // Read the zip file into a memory stream
             var memoryStream = new MemoryStream();
