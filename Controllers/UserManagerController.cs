@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication5.Models;
 using WebApplication5.Models.ViewModels;
 using System.IO.Compression;
+using X.PagedList;
+using X.PagedList.Extensions;
 
 namespace WebApplication5.Controllers
 {
@@ -26,8 +28,10 @@ namespace WebApplication5.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
         [Authorize]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? page)
         {
+            int pageSize = 10;
+            int pageNumber = (page ?? 1);
             var users = await _userManager.Users.ToListAsync();
             var userRolesViewModel = _mapper.Map<List<UserRolesViewModel>>(users);
 
@@ -37,7 +41,8 @@ namespace WebApplication5.Controllers
                 userViewModel.Roles = await GetUserRoles(user);
             }
 
-            return View(userRolesViewModel);
+            var pagedUsers = userRolesViewModel.ToPagedList(pageNumber, pageSize);
+            return View(pagedUsers);
         }
 
         private async Task<List<string>> GetUserRoles(ApplicationUser user)

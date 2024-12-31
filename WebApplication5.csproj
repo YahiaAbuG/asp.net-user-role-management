@@ -24,6 +24,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.1.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+    <PackageReference Include="X.PagedList" Version="10.5.7" />
+    <PackageReference Include="X.PagedList.Mvc.Core" Version="10.5.7" />
   </ItemGroup>
 
   <ItemGroup>

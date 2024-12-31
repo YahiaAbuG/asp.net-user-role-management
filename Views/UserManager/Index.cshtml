@@ -1,17 +1,22 @@
-﻿@model List<WebApplication5.Models.ViewModels.UserRolesViewModel>
+﻿@using X.PagedList.Mvc.Core;
+@using X.PagedList;
+@model IPagedList<WebApplication5.Models.ViewModels.UserRolesViewModel>
 @{
     ViewData["Title"] = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <br />
 <h1>Users</h1>
-@if (User.IsInRole("Admin"))
+@if (User.IsInRole("Admin") || User.IsInRole("Manager"))
 {
     <br />
     <div class="flex-column">
-        <a asp-action="Create" class="btn btn-primary">Create User</a>
+		@if (User.IsInRole("Admin"))
+		{
+            <a asp-action="Create" class="btn btn-primary">Create User</a>
+            <a asp-action="DownloadQrs" class="btn btn-secondary">Download User QR Codes</a>
+		}
         <a asp-action="DownloadImages" class="btn btn-secondary">Download User Profile Images</a>
-        <a asp-action="DownloadQrs" class="btn btn-secondary">Download User QR Codes</a>
     </div>
     <br />
     <br />
@@ -49,3 +54,11 @@
         }
     </tbody>
 </table>
+<div class="d-flex justify-content-center">
+    @Html.PagedListPager(Model, page => Url.Action("Index", new { page }), new PagedListRenderOptions
+{
+    LiElementClasses = new[] { "page-item" },
+    PageClasses = new[] { "page-link" },
+    UlElementClasses = new[] { "pagination" }
+})
+</div>
