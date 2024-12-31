@@ -332,5 +332,114 @@ namespace WebApplication5.Controllers
             // Return the zip file as a download
             return File(memoryStream, "application/zip", zipFileName);
         }
+
+        [Authorize(Roles = "Admin,Manager")]
+        public IActionResult SelectImages()
+        {
+            var imagesFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
+            if (!Directory.Exists(imagesFolder))
+            {
+                ViewBag.ErrorMessage = "Images folder not found.";
+                return View("NotFound");
+            }
+
+            var imageFiles = Directory.GetFiles(imagesFolder).Select(Path.GetFileName).ToList();
+            var model = new DownloadImagesViewModel { ImageFileNames = imageFiles };
+
+            return View(model);
+        }
+
+        [Authorize(Roles = "Admin,Manager")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DownloadSelectedImages(DownloadImagesViewModel model)
+        {
+            if (model.ImageFileNames == null || !model.ImageFileNames.Any())
+            {
+                ModelState.AddModelError("", "No images selected.");
+                return View("SelectImages", model);
+            }
+
+            var imagesFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
+            var zipFileName = "selected_images.zip";
+            var zipFilePath = Path.Combine(_webHostEnvironment.WebRootPath, zipFileName);
+
+            using (var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create))
+            {
+                foreach (var fileName in model.ImageFileNames)
+                {
+                    var filePath = Path.Combine(imagesFolder, fileName);
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        zipArchive.CreateEntryFromFile(filePath, fileName);
+                    }
+                }
+            }
+
+            var memoryStream = new MemoryStream();
+            using (var stream = new FileStream(zipFilePath, FileMode.Open))
+            {
+                await stream.CopyToAsync(memoryStream);
+            }
+            memoryStream.Position = 0;
+
+            System.IO.File.Delete(zipFilePath);
+
+            return File(memoryStream, "application/zip", zipFileName);
+        }
+
+        [Authorize(Roles = "Admin")]
+        public IActionResult SelectQrs()
+        {
+            var qrsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "qrs");
+            if (!Directory.Exists(qrsFolder))
+            {
+                ViewBag.ErrorMessage = "QRs folder not found.";
+                return View("NotFound");
+            }
+
+            var qrFiles = Directory.GetFiles(qrsFolder).Select(Path.GetFileName).ToList();
+            var model = new DownloadQrsViewModel { QrFileNames = qrFiles };
+
+            return View(model);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DownloadSelectedQrs(DownloadQrsViewModel model)
+        {
+            if (model.QrFileNames == null || !model.QrFileNames.Any())
+            {
+                ModelState.AddModelError("", "No QR codes selected.");
+                return View("SelectQrs", model);
+            }
+
+            var qrsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "qrs");
+            var zipFileName = "selected_qrs.zip";
+            var zipFilePath = Path.Combine(_webHostEnvironment.WebRootPath, zipFileName);
+
+            using (var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create))
+            {
+                foreach (var fileName in model.QrFileNames)
+                {
+                    var filePath = Path.Combine(qrsFolder, fileName);
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        zipArchive.CreateEntryFromFile(filePath, fileName);
+                    }
+                }
+            }
+            var memoryStream = new MemoryStream();
+            using (var stream = new FileStream(zipFilePath, FileMode.Open))
+            {
+                await stream.CopyToAsync(memoryStream);
+            }
+            memoryStream.Position = 0;
+
+            System.IO.File.Delete(zipFilePath);
+
+            return File(memoryStream, "application/zip", zipFileName);
+        }
     }
 }

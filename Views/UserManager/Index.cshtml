@@ -10,15 +10,21 @@
 @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
 {
     <br />
-    <div class="flex-column">
-		@if (User.IsInRole("Admin"))
-		{
-            <a asp-action="Create" class="btn btn-primary">Create User</a>
-            <a asp-action="DownloadQrs" class="btn btn-secondary">Download User QR Codes</a>
-		}
-        <a asp-action="DownloadImages" class="btn btn-secondary">Download User Profile Images</a>
-    </div>
+	@if (User.IsInRole("Admin"))
+	{
+        <a asp-action="Create" class="btn btn-primary">Create User</a>
+        <br />
+        <br />
+        <div class="flex-column">
+                <a asp-action="DownloadQrs" class="btn btn-primary">Download All User QR Codes</a>
+                <a asp-action="SelectQrs" class="btn btn-secondary">Select User QR Codes for Download</a>
+        </div>
+	}
     <br />
+    <div class="flex-column">
+        <a asp-action="DownloadImages" class="btn btn-primary">Download All User Profile Images</a>
+        <a asp-action="SelectImages" class="btn btn-secondary">Select User Profile Images for Download</a>
+    </div>
     <br />
 }
 <table class="table table-striped">

@@ -1,0 +1,23 @@
+﻿@model WebApplication5.Models.ViewModels.DownloadImagesViewModel
+
+@{
+    ViewData["Title"] = "Select Images to Download";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">Select Images to Download</h2>
+
+<form asp-action="DownloadSelectedImages" method="post">
+    <div class="form-group">
+        @foreach (var imageFileName in Model.ImageFileNames)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="ImageFileNames" value="@imageFileName" id="image_@imageFileName" />
+                <label class="form-check-label" for="image_@imageFileName">
+                    @imageFileName
+                </label>
+            </div>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">Download Selected Images</button>
+</form>

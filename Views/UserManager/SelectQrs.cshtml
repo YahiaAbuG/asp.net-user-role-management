@@ -1,0 +1,23 @@
+﻿@model WebApplication5.Models.ViewModels.DownloadQrsViewModel
+
+@{
+    ViewData["Title"] = "Select QR Codes to Download";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">Select QR Codes to Download</h2>
+
+<form asp-action="DownloadSelectedQrs" method="post">
+    <div class="form-group">
+        @foreach (var qrFileName in Model.QrFileNames)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="QrFileNames" value="@qrFileName" id="qr_@qrFileName" />
+                <label class="form-check-label" for="qr_@qrFileName">
+                    @qrFileName
+                </label>
+            </div>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">Download Selected QR Codes</button>
+</form>
