@@ -25,4 +25,8 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\qrs\" />
+  </ItemGroup>
+
 </Project>

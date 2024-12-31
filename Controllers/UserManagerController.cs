@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Models;
 using WebApplication5.Models.ViewModels;
+using System.IO.Compression;
 
 namespace WebApplication5.Controllers
 {
@@ -267,6 +268,37 @@ namespace WebApplication5.Controllers
                 ModelState.AddModelError("", error.Description);
             }
             return View(model);
+        }
+
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> DownloadImages()
+        {
+            var imagesFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
+            if (!Directory.Exists(imagesFolder))
+            {
+                ViewBag.ErrorMessage = "Images folder not found.";
+                return View("NotFound");
+            }
+
+            var zipFileName = "images.zip";
+            var zipFilePath = Path.Combine(_webHostEnvironment.WebRootPath, zipFileName);
+
+            // Create the zip file
+            ZipFile.CreateFromDirectory(imagesFolder, zipFilePath);
+
+            // Read the zip file into a memory stream
+            var memoryStream = new MemoryStream();
+            using (var stream = new FileStream(zipFilePath, FileMode.Open))
+            {
+                await stream.CopyToAsync(memoryStream);
+            }
+            memoryStream.Position = 0;
+
+            // Delete the zip file from the server after reading it
+            System.IO.File.Delete(zipFilePath);
+
+            // Return the zip file as a download
+            return File(memoryStream, "application/zip", zipFileName);
         }
     }
 }

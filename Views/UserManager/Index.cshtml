@@ -8,7 +8,10 @@
 @if (User.IsInRole("Admin"))
 {
     <br />
-    <a asp-action="Create" class="btn btn-primary">Create User</a>
+    <div class="flex-column">
+        <a asp-action="Create" class="btn btn-primary">Create User</a>
+        <a asp-action="DownloadImages" class="btn btn-secondary">Download User Profile Images</a>
+    </div>
     <br />
     <br />
 }
