@@ -7,8 +7,14 @@ using WebApplication5.Models.ViewModels;
 
 namespace WebApplication5.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext : IdentityDbContext<
+        ApplicationUser, IdentityRole, string, 
+        IdentityUserClaim<string>, ApplicationUserRole, 
+        IdentityUserLogin<string>, IdentityRoleClaim<string>, IdentityUserToken<string>>
     {
+
+        public DbSet<School> Schools { get; set; }
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -18,7 +24,25 @@ namespace WebApplication5.Data
         {
             base.OnModelCreating(builder);
 
-            // Remove role seeding from here
+            builder.Entity<ApplicationUserRole>(b =>
+            {
+                b.HasKey(r => new { r.UserId, r.RoleId, r.SchoolId });
+
+                b.HasOne(r => r.User)
+                    .WithMany()
+                    .HasForeignKey(r => r.UserId)
+                    .IsRequired();
+
+                b.HasOne(r => r.Role)
+                    .WithMany()
+                    .HasForeignKey(r => r.RoleId)
+                    .IsRequired();
+
+                b.HasOne(r => r.School)
+                    .WithMany(s => s.UserRoles)
+                    .HasForeignKey(r => r.SchoolId)
+                    .IsRequired();
+            });
         }
 
         public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
