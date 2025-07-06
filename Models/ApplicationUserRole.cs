@@ -8,7 +8,8 @@ namespace WebApplication5.Models
 
         public School School { get; set; }
         public ApplicationUser User { get; set; }
-        public IdentityRole<string> Role { get; set; }
+
+        //public IdentityRole<string> Role { get; set; }
     }
    
 }

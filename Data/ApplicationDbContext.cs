@@ -33,16 +33,17 @@ namespace WebApplication5.Data
                     .HasForeignKey(r => r.UserId)
                     .IsRequired();
 
-                b.HasOne(r => r.Role)
-                    .WithMany()
-                    .HasForeignKey(r => r.RoleId)
-                    .IsRequired();
-
                 b.HasOne(r => r.School)
                     .WithMany(s => s.UserRoles)
                     .HasForeignKey(r => r.SchoolId)
                     .IsRequired();
             });
+
+            builder.Entity<School>().HasData(
+                new School { Id = 1, Name = "School 1" },
+                new School { Id = 2, Name = "School 2" },
+                new School { Id = 3, Name = "School 3" }
+            );
         }
 
         public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)

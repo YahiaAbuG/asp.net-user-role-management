@@ -18,22 +18,31 @@ namespace WebApplication5.Models.Services
 
         public async Task<List<string>> GetUserRolesAsync(string userId, int schoolId)
         {
-            return await _context.UserRoles
-                .Include(r => r.Role)
+            // Get RoleIds assigned to the user in this school
+            var roleIds = await _context.UserRoles
                 .Where(r => r.UserId == userId && r.SchoolId == schoolId)
-                .Select(r => r.Role.Name)
+                .Select(r => r.RoleId)
+                .ToListAsync();
+
+            // Get role names from RoleManager using those RoleIds
+            return await _roleManager.Roles
+                .Where(role => roleIds.Contains(role.Id))
+                .Select(r => r.Name)
                 .ToListAsync();
         }
 
+
         public async Task<bool> IsUserInRoleAsync(string userId, string roleName, int schoolId)
         {
-            return await _context.UserRoles
-                .Include(r => r.Role)
-                .AnyAsync(r =>
-                    r.UserId == userId &&
-                    r.SchoolId == schoolId &&
-                    r.Role.Name == roleName);
+            var role = await _roleManager.FindByNameAsync(roleName);
+            if (role == null) return false;
+
+            return await _context.UserRoles.AnyAsync(r =>
+                r.UserId == userId &&
+                r.SchoolId == schoolId &&
+                r.RoleId == role.Id);
         }
+
 
         public async Task AssignRolesAsync(string userId, IEnumerable<string> roleNames, int schoolId)
         {
