@@ -10,6 +10,7 @@ using WebApplication5.Models.ViewModels;
 using System.IO.Compression;
 using X.PagedList;
 using X.PagedList.Extensions;
+using WebApplication5.Models.Interfaces;
 
 namespace WebApplication5.Controllers
 {
@@ -19,13 +20,19 @@ namespace WebApplication5.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ISchoolRoleService _schoolRoleService;
 
-        public UserManagerController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IMapper mapper, IWebHostEnvironment webHostEnvironment)
+        public UserManagerController(UserManager<ApplicationUser> userManager, 
+            RoleManager<IdentityRole> roleManager, 
+            IMapper mapper, 
+            IWebHostEnvironment webHostEnvironment,
+            ISchoolRoleService schoolRoleService)
         {
             _mapper = mapper;
             _roleManager = roleManager;
             _userManager = userManager;
             _webHostEnvironment = webHostEnvironment;
+            _schoolRoleService = schoolRoleService;
         }
         [Authorize]
         public async Task<IActionResult> Index(int? page)
@@ -35,20 +42,18 @@ namespace WebApplication5.Controllers
             var users = await _userManager.Users.ToListAsync();
             var userRolesViewModel = _mapper.Map<List<UserRolesViewModel>>(users);
 
+            int schoolId = int.Parse(HttpContext.Request.Query["schoolId"]);
+
             foreach (var userViewModel in userRolesViewModel)
             {
                 var user = users.First(u => u.Id == userViewModel.UserId);
-                userViewModel.Roles = await GetUserRoles(user);
+                userViewModel.Roles = await _schoolRoleService.GetUserRolesAsync(user.Id, schoolId);
             }
 
             var pagedUsers = userRolesViewModel.ToPagedList(pageNumber, pageSize);
             return View(pagedUsers);
         }
 
-        private async Task<List<string>> GetUserRoles(ApplicationUser user)
-        {
-            return new List<string>(await _userManager.GetRolesAsync(user));
-        }
         // GET
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Manage(string userId)
@@ -60,12 +65,14 @@ namespace WebApplication5.Controllers
                 return View("NotFound");
             }
 
+            int schoolId = int.Parse(HttpContext.Request.Query["schoolId"]);
+
             // Check if the user being managed has the "Admin" role
-            var isUserAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            var isUserAdmin = await _schoolRoleService.IsUserInRoleAsync(user.Id, "Admin", schoolId);
 
             // Check if the current user is an admin
             var currentUser = await _userManager.GetUserAsync(User);
-            ViewBag.isCurrentUserAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            ViewBag.isCurrentUserAdmin = await _schoolRoleService.IsUserInRoleAsync(currentUser.Id, "Admin", schoolId);
 
             // If the current user is not an admin and the user being managed is an admin, deny access
             if (isUserAdmin && !ViewBag.isCurrentUserAdmin)
@@ -83,7 +90,7 @@ namespace WebApplication5.Controllers
 
             foreach (var roleViewModel in model)
             {
-                roleViewModel.Selected = await _userManager.IsInRoleAsync(user, roleViewModel.RoleName);
+                roleViewModel.Selected = await _schoolRoleService.IsUserInRoleAsync(user.Id, roleViewModel.RoleName, schoolId);
             }
 
             return View(model);
@@ -92,28 +99,32 @@ namespace WebApplication5.Controllers
         // POST
         [Authorize(Roles = "Admin,Manager")]
         [HttpPost]
-        public async Task<IActionResult> Manage(List<ManageUserRolesViewModel> model, string userId)
+        public async Task<IActionResult> Manage(List<ManageUserRolesViewModel> model, string userId, int schoolId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return View();
+                ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
+                return View("NotFound");
             }
-            var roles = await _userManager.GetRolesAsync(user);
-            var result = await _userManager.RemoveFromRolesAsync(user, roles);
-            if (!result.Succeeded)
+
+            // Validate that at least one role is selected (optional)
+            if (!model.Any(r => r.Selected))
             {
-                ModelState.AddModelError("", "Cannot remove user existing roles");
+                ModelState.AddModelError("", "You must select at least one role.");
                 return View(model);
             }
-            result = await _userManager.AddToRolesAsync(user, model.Where(x => x.Selected).Select(y => y.RoleName));
-            if (!result.Succeeded)
-            {
-                ModelState.AddModelError("", "Cannot add selected roles to user");
-                return View(model);
-            }
-            return RedirectToAction("Index");
+
+            // Assign roles using your SchoolRoleService
+            var selectedRoles = model
+                .Where(x => x.Selected)
+                .Select(x => x.RoleName);
+
+            await _schoolRoleService.AssignRolesAsync(user.Id, selectedRoles, schoolId);
+
+            return RedirectToAction("Index", new { schoolId });
         }
+
 
         // GET
         [Authorize(Roles = "Admin,Manager")]
@@ -164,6 +175,9 @@ namespace WebApplication5.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserViewModel model)
         {
+
+            int schoolId = int.Parse(HttpContext.Request.Query["schoolId"]);
+
             if (ModelState.IsValid)
             {
                 var user = _mapper.Map<ApplicationUser>(model);
@@ -172,7 +186,7 @@ namespace WebApplication5.Controllers
                 {
                     if (!string.IsNullOrEmpty(model.Role))
                     {
-                        await _userManager.AddToRoleAsync(user, model.Role);
+                        await _schoolRoleService.AssignRolesAsync(user.Id, new[] { model.Role }, schoolId);
                     }
 
                     user.GenerateQrCode();
@@ -186,7 +200,8 @@ namespace WebApplication5.Controllers
             }
             var roles = await _roleManager.Roles.ToListAsync();
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
-            return View(model);
+
+            return RedirectToAction(nameof(Index), new { schoolId });
         }
 
         // GET
