@@ -260,14 +260,15 @@ namespace WebApplication5.Controllers
                 {
                     Directory.CreateDirectory(uploadsFolder);
                 }
-                var uniqueFileName = Guid.NewGuid().ToString() + "_" + model.ProfileImage.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                var fileExtension = Path.GetExtension(model.ProfileImage.FileName);
+                var fileName = model.Id + fileExtension;
+                var filePath = Path.Combine(uploadsFolder, fileName);
                 using (var fileStream = new FileStream(filePath, FileMode.Create))
                 {
                     await model.ProfileImage.CopyToAsync(fileStream);
                 }
 
-                var newPath = Path.Combine("~/images", uniqueFileName).Replace("\\", "/");
+                var newPath = Path.Combine("~/images", fileName).Replace("\\", "/");
 
                 // Save the relative path to the user's profile
                 user.ProfileImagePath = newPath;
