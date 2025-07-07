@@ -26,7 +26,7 @@ namespace WebApplication5.Data
 
             builder.Entity<ApplicationUserRole>(b =>
             {
-                b.HasKey(r => new { r.UserId, r.RoleId, r.SchoolId });
+                b.HasKey(r => new { r.UserId, r.RoleId });
 
                 b.HasOne(r => r.User)
                     .WithMany()
@@ -36,7 +36,8 @@ namespace WebApplication5.Data
                 b.HasOne(r => r.School)
                     .WithMany(s => s.UserRoles)
                     .HasForeignKey(r => r.SchoolId)
-                    .IsRequired();
+                    .IsRequired(false) // SchoolId is nullable
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<School>().HasData(
@@ -61,34 +62,68 @@ namespace WebApplication5.Data
             {
                 await roleManager.CreateAsync(new IdentityRole("Member"));
             }
+            if (!await roleManager.RoleExistsAsync("SuperAdmin"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+            }
         }
 
-        public static async Task SeedDefaultAdminUserAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public static async Task SeedDefaultAdminUserAsync(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext dbContext)
         {
-            // Seed roles
+            // Ensure all roles are seeded
             await SeedRolesAsync(roleManager);
 
-            // Create default admin user if it doesn't exist
-            var defaultUser = new ApplicationUser
+            // Create the SuperAdmin user if it doesn't exist
+            var superAdmin = new ApplicationUser
             {
-                UserName = "admin",
-                Email = "admin@example.com",
-                FirstName = "Admin",
-                LastName = "User",
+                UserName = "superadmin",
+                Email = "super@admin.com",
+                FirstName = "Super",
+                LastName = "Admin",
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true
             };
 
-            if (userManager.Users.All(u => u.UserName != defaultUser.UserName))
+            // Check if user already exists
+            var user = await userManager.FindByEmailAsync(superAdmin.Email);
+            if (user == null)
             {
-                var user = await userManager.FindByEmailAsync(defaultUser.Email);
-                if (user == null)
+                var result = await userManager.CreateAsync(superAdmin, "Blud456");
+                if (!result.Succeeded)
+                    return; // or handle error
+                user = superAdmin;
+            }
+
+            // Ensure SuperAdmin role exists
+            var role = await roleManager.FindByNameAsync("SuperAdmin");
+            if (role == null)
+            {
+                await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+                role = await roleManager.FindByNameAsync("SuperAdmin");
+            }
+
+            // Manually assign SuperAdmin role without SchoolId
+            var existingRole = await dbContext.UserRoles.FirstOrDefaultAsync(r =>
+                r.UserId == user.Id &&
+                r.RoleId == role.Id &&
+                r.SchoolId == null);
+
+            if (existingRole == null)
+            {
+                dbContext.UserRoles.Add(new ApplicationUserRole
                 {
-                    await userManager.CreateAsync(defaultUser, "Blud456");
-                    await userManager.AddToRoleAsync(defaultUser, "Admin");
-                }
+                    UserId = user.Id,
+                    RoleId = role.Id,
+                    SchoolId = null // Indicates global role
+                });
+
+                await dbContext.SaveChangesAsync();
             }
         }
+
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
     }

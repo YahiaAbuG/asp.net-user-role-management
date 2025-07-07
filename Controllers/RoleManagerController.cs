@@ -8,7 +8,7 @@ using WebApplication5.Attributes;
 
 namespace WebApplication5.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin")]
     public class RoleManagerController : Controller
     {
         private readonly RoleManager<IdentityRole> _roleManager;

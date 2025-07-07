@@ -24,6 +24,12 @@ namespace WebApplication5.Attributes
                 return;
             }
 
+            if (user.IsInRole("SuperAdmin"))
+            {
+                // SuperAdmins are allowed to access everything
+                return;
+            }
+
             var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
             {
@@ -33,7 +39,7 @@ namespace WebApplication5.Attributes
 
             int schoolId = int.Parse(context.HttpContext.Request.Query["schoolId"]);
 
-            if (schoolId <= 0)
+            if (schoolId < 0)
             {
                 context.Result = new BadRequestObjectResult("Missing or invalid schoolId");
                 return;
