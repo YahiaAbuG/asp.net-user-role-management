@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Data;
+using WebApplication5.Models;
 using WebApplication5.Models.Interfaces;
 
-namespace WebApplication5.Models.Services
+namespace WebApplication5.Services
 {
     public class SchoolRoleService : ISchoolRoleService
     {

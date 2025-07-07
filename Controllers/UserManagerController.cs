@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Models;
 using WebApplication5.Models.ViewModels;
+using WebApplication5.Attributes;
 using System.IO.Compression;
 using X.PagedList;
 using X.PagedList.Extensions;
@@ -55,7 +56,7 @@ namespace WebApplication5.Controllers
         }
 
         // GET
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         public async Task<IActionResult> Manage(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -97,7 +98,7 @@ namespace WebApplication5.Controllers
         }
 
         // POST
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         [HttpPost]
         public async Task<IActionResult> Manage(List<ManageUserRolesViewModel> model, string userId, int schoolId)
         {
@@ -127,7 +128,7 @@ namespace WebApplication5.Controllers
 
 
         // GET
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         public async Task<IActionResult> Delete(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -140,7 +141,7 @@ namespace WebApplication5.Controllers
         }
 
         // POST
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string userId)
@@ -162,7 +163,7 @@ namespace WebApplication5.Controllers
             return RedirectToAction("Index");
         }
 
-        [Authorize(Roles = "Admin")]
+        [AuthorizeSchoolRole("Admin")]
         public async Task<IActionResult> Create()
         {
             var roles = await _roleManager.Roles.ToListAsync();
@@ -170,7 +171,7 @@ namespace WebApplication5.Controllers
             return View();
         }
 
-        [Authorize(Roles = "Admin")]
+        [AuthorizeSchoolRole("Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserViewModel model)
@@ -205,7 +206,7 @@ namespace WebApplication5.Controllers
         }
 
         // GET
-        [Authorize(Roles = "Admin")]
+        [AuthorizeSchoolRole("Admin")]
         public async Task<IActionResult> Edit(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -287,7 +288,7 @@ namespace WebApplication5.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         public async Task<IActionResult> DownloadImages()
         {
             var imagesFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
@@ -318,7 +319,7 @@ namespace WebApplication5.Controllers
             return File(memoryStream, "application/zip", zipFileName);
         }
 
-        [Authorize(Roles = "Admin")]
+        [AuthorizeSchoolRole("Admin")]
         public async Task<IActionResult> DownloadQrs()
         {
             var qrsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "qrs");
@@ -349,7 +350,7 @@ namespace WebApplication5.Controllers
             return File(memoryStream, "application/zip", zipFileName);
         }
 
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         public IActionResult SelectImages()
         {
             var imagesFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images");
@@ -365,7 +366,7 @@ namespace WebApplication5.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "Admin,Manager")]
+        [AuthorizeSchoolRole("Admin,Manager")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DownloadSelectedImages(DownloadImagesViewModel model)
@@ -404,7 +405,7 @@ namespace WebApplication5.Controllers
             return File(memoryStream, "application/zip", zipFileName);
         }
 
-        [Authorize(Roles = "Admin")]
+        [AuthorizeSchoolRole("Admin")]
         public IActionResult SelectQrs()
         {
             var qrsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "qrs");
@@ -420,7 +421,7 @@ namespace WebApplication5.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "Admin")]
+        [AuthorizeSchoolRole("Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DownloadSelectedQrs(DownloadQrsViewModel model)
