@@ -7,5 +7,7 @@
         Task AssignRolesAsync(string userId, IEnumerable<string> roleNames, int schoolId);
         Task RemoveRolesAsync(string userId, int schoolId);
         Task<bool> IsRoleInUse(string roleId);
+        Task<List<School>> GetAllSchoolsAsync();
+
     }
 }

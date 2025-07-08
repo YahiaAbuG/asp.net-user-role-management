@@ -13,8 +13,14 @@ namespace WebApplication5.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int? schoolId)
         {
+            if (schoolId == null)
+            {
+                return RedirectToAction("Index", new { schoolId = 1 });
+            }
+
+            ViewBag.CurrentSchoolId = schoolId;
             return View();
         }
 

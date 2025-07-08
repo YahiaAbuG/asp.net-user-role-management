@@ -38,12 +38,16 @@ namespace WebApplication5.Controllers
         [Authorize]
         public async Task<IActionResult> Index(int? page)
         {
+            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
+            {
+                return RedirectToAction(nameof(Index), new { schoolId = 1 });
+            }
+            ViewBag.CurrentSchoolId = schoolId;
+
             int pageSize = 10;
             int pageNumber = (page ?? 1);
             var users = await _userManager.Users.ToListAsync();
             var userRolesViewModel = _mapper.Map<List<UserRolesViewModel>>(users);
-
-            int schoolId = int.Parse(HttpContext.Request.Query["schoolId"]);
 
             foreach (var userViewModel in userRolesViewModel)
             {
@@ -55,10 +59,17 @@ namespace WebApplication5.Controllers
             return View(pagedUsers);
         }
 
+
         // GET
         [AuthorizeSchoolRole("Admin,Manager")]
         public async Task<IActionResult> Manage(string userId)
         {
+            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
+            {
+                return RedirectToAction(nameof(Index), new { schoolId = 1 });
+            }
+            ViewBag.CurrentSchoolId = schoolId;
+
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
@@ -66,25 +77,17 @@ namespace WebApplication5.Controllers
                 return View("NotFound");
             }
 
-            int schoolId = int.Parse(HttpContext.Request.Query["schoolId"]);
-
-            // Check if the user being managed has the "Admin" role
             var isUserAdmin = await _schoolRoleService.IsUserInRoleAsync(user.Id, "Admin", schoolId);
-
-            // Check if the current user is an admin
             var currentUser = await _userManager.GetUserAsync(User);
             ViewBag.isCurrentUserAdmin = await _schoolRoleService.IsUserInRoleAsync(currentUser.Id, "Admin", schoolId);
 
-            // If the current user is not an admin and the user being managed is an admin, deny access
             if (isUserAdmin && !ViewBag.isCurrentUserAdmin)
             {
                 return Forbid();
             }
 
             ViewBag.UserName = user.UserName;
-
             var roles = await _roleManager.Roles.ToListAsync();
-
             ViewBag.AdminRoleId = (await _roleManager.FindByNameAsync("Admin"))?.Id;
 
             var model = _mapper.Map<List<ManageUserRolesViewModel>>(roles);
@@ -96,6 +99,7 @@ namespace WebApplication5.Controllers
 
             return View(model);
         }
+
 
         // POST
         [AuthorizeSchoolRole("Admin,Manager")]
@@ -146,11 +150,17 @@ namespace WebApplication5.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string userId)
         {
+            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
+            {
+                return RedirectToAction(nameof(Index), new { schoolId = 1 });
+            }
+            ViewBag.CurrentSchoolId = schoolId;
+
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index), new { schoolId });
             }
 
             var result = await _userManager.DeleteAsync(user);
@@ -160,24 +170,35 @@ namespace WebApplication5.Controllers
                 return View(user);
             }
 
-            return RedirectToAction("Index");
+            return RedirectToAction("Index", new { schoolId });
         }
+
 
         [AuthorizeSchoolRole("Admin")]
         public async Task<IActionResult> Create()
         {
+            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
+            {
+                return RedirectToAction(nameof(Index), new { schoolId = 1 });
+            }
+            ViewBag.CurrentSchoolId = schoolId;
+
             var roles = await _roleManager.Roles.ToListAsync();
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
             return View();
         }
+
 
         [AuthorizeSchoolRole("Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserViewModel model)
         {
-
-            int schoolId = int.Parse(HttpContext.Request.Query["schoolId"]);
+            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
+            {
+                return RedirectToAction(nameof(Index), new { schoolId = 1 });
+            }
+            ViewBag.CurrentSchoolId = schoolId;
 
             if (ModelState.IsValid)
             {
@@ -191,19 +212,20 @@ namespace WebApplication5.Controllers
                     }
 
                     user.GenerateQrCode();
-
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToAction(nameof(Index), new { schoolId });
                 }
+
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
                 }
             }
+
             var roles = await _roleManager.Roles.ToListAsync();
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
-
-            return RedirectToAction(nameof(Index), new { schoolId });
+            return View(model);
         }
+
 
         // GET
         [AuthorizeSchoolRole("Admin")]

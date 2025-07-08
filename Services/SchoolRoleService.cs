@@ -81,5 +81,10 @@ namespace WebApplication5.Services
         {
             return await _context.UserRoles.AnyAsync(r => r.RoleId == roleId);
         }
+        public async Task<List<School>> GetAllSchoolsAsync()
+        {
+            return await _context.Schools.ToListAsync();
+        }
+
     }
 }

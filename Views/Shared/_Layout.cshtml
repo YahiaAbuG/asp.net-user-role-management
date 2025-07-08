@@ -1,9 +1,14 @@
 ﻿@using Microsoft.AspNetCore.Identity
+@using WebApplication5.Models.Interfaces
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject ISchoolRoleService SchoolRoleService
+
 @{
-    
+    var schools = await SchoolRoleService.GetAllSchoolsAsync();
+    var currentSchoolId = Context.Request.Query["schoolId"].ToString();
 }
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -82,6 +87,9 @@
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
                     <a href="/swagger" class="nav-link">Swagger</a>
+                </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    @await Component.InvokeAsync("SchoolSelector", currentSchoolId)
                 </li>
             </ul>
 
