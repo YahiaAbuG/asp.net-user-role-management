@@ -365,3 +365,9 @@ FodyWeavers.xsd
 /Areas/Identity/Pages/Account/Login1.cshtml.cs
 /Areas/Identity/Pages/Account/Register1.cshtml
 /Areas/Identity/Pages/Account/Register1.cshtml.cs
+
+
+# Images and QRs
+
+wwwroot/images/
+wwwroot/qrs/

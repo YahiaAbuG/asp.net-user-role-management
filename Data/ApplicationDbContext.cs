@@ -26,7 +26,7 @@ namespace WebApplication5.Data
 
             builder.Entity<ApplicationUserRole>(b =>
             {
-                b.HasKey(r => new { r.UserId, r.RoleId });
+                b.HasKey(r => r.Id); // single-column primary key
 
                 b.HasOne(r => r.User)
                     .WithMany()
@@ -36,8 +36,18 @@ namespace WebApplication5.Data
                 b.HasOne(r => r.School)
                     .WithMany(s => s.UserRoles)
                     .HasForeignKey(r => r.SchoolId)
-                    .IsRequired(false) // SchoolId is nullable
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(r => r.Activity)
+                    .WithMany()
+                    .HasForeignKey(r => r.ActivityId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional: prevent duplicate combinations
+                b.HasIndex(r => new { r.UserId, r.RoleId, r.SchoolId, r.ActivityId }).IsUnique();
+
             });
 
             builder.Entity<School>().HasData(
@@ -65,6 +75,14 @@ namespace WebApplication5.Data
             if (!await roleManager.RoleExistsAsync("SuperAdmin"))
             {
                 await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+            }
+            if (!await roleManager.RoleExistsAsync("ActivityAdmin"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("ActivityAdmin"));
+            }
+            if (!await roleManager.RoleExistsAsync("ActivityMember"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("ActivityMember"));
             }
         }
 
