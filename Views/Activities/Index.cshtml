@@ -1,6 +1,6 @@
 ﻿@using X.PagedList.Mvc.Core;
 @using X.PagedList;
-@model WebApplication5.Models.ViewModels.ActivitiesIndexViewModel
+@model IPagedList<WebApplication5.Models.Activity>
 
 @{
     ViewData["Title"] = "Activities";
@@ -22,9 +22,9 @@
         </tr>
     </thead>
     <tbody>
-        @if (Model.AssignedActivities != null && Model.AssignedActivities.Any())
+        @if (Model != null && Model.Any())
         {
-            foreach (var activity in Model.AssignedActivities)
+            foreach (var activity in Model)
             {
                 <tr>
                     <td>@activity.Name</td>
@@ -41,45 +41,9 @@
         }
     </tbody>
 </table>
-<div class="d-flex justify-content-center">
-    @Html.PagedListPager(Model.AssignedActivities, page => Url.Action("Index", new { assignedPage = page }), new PagedListRenderOptions
-    {
-        LiElementClasses = new[] { "page-item" },
-        PageClasses = new[] { "page-link" },
-        UlElementClasses = new[] { "pagination" }
-        })
-</div>
 
-<h3 class="mt-5">Unassigned Activities</h3>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Activity Name</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (Model.UnassignedActivities != null && Model.UnassignedActivities.Any())
-        {
-            foreach (var activity in Model.UnassignedActivities)
-            {
-                <tr>
-                    <td>@activity.Name</td>
-                    <td>
-                        <a asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-primary">Edit</a>
-                        <a asp-action="Delete" asp-route-id="@activity.Id" class="btn btn-danger">Delete</a>
-                    </td>
-                </tr>
-            }
-        }
-        else
-        {
-            <tr><td colspan="2">No unassigned activities.</td></tr>
-        }
-    </tbody>
-</table>
 <div class="d-flex justify-content-center">
-    @Html.PagedListPager(Model.UnassignedActivities, page => Url.Action("Index", new { unassignedPage = page }), new PagedListRenderOptions
+    @Html.PagedListPager(Model, page => Url.Action("Index", new { page }), new PagedListRenderOptions
     {
         LiElementClasses = new[] { "page-item" },
         PageClasses = new[] { "page-link" },

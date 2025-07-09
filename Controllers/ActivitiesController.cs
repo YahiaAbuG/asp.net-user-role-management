@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Data;
 using WebApplication5.Models;
 using WebApplication5.Models.Interfaces;
 using WebApplication5.Models.ViewModels;
 using X.PagedList;
-using X.PagedList.Mvc.Core;
 using X.PagedList.Extensions;
+using X.PagedList.Mvc.Core;
 
 namespace WebApplication5.Controllers
 {
@@ -14,63 +15,43 @@ namespace WebApplication5.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ICurrentSchoolService _currentSchoolService;
+        private readonly ISchoolRoleService _schoolRoleService;
 
-        public ActivitiesController(ApplicationDbContext context, ICurrentSchoolService currentSchoolService)
+        public ActivitiesController(ApplicationDbContext context, ICurrentSchoolService currentSchoolService, ISchoolRoleService schoolRoleService)
         {
             _context = context;
             _currentSchoolService = currentSchoolService;
+            _schoolRoleService = schoolRoleService;
         }
 
         // GET: Activities
-        public async Task<IActionResult> Index(int? assignedPage, int? unassignedPage)
+        public async Task<IActionResult> Index(int? page)
         {
             int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
             int pageSize = 10;
+            int pageNumber = page ?? 1;
 
-            var allUserRoles = await _context.UserRoles
-                .Include(ur => ur.Activity)
-                .Where(ur => ur.ActivityId != null)
-                .ToListAsync();
-
-            var assignedActivityIds = allUserRoles
-                .Where(ur => ur.SchoolId == schoolId)
-                .Select(ur => ur.ActivityId)
-                .Distinct()
-                .ToList();
-
-            var assignedActivitiesList = await _context.Activity
-                .Where(a => assignedActivityIds.Contains(a.Id))
-                .ToListAsync();
-
-            // 👇 Fix: pull all activities first, then filter in memory
+            // Bring all activities into memory
             var allActivities = await _context.Activity.ToListAsync();
 
-            var unassignedActivitiesList = allActivities
-                .Where(a => !allUserRoles.Any(ur => ur.ActivityId == a.Id))
+            // Filter by current school
+            var assignedActivities = allActivities
+                .Where(a => a.SchoolId == schoolId)
                 .ToList();
 
-            var assignedActivities = assignedActivitiesList.ToPagedList(assignedPage ?? 1, pageSize);
-            var unassignedActivities = unassignedActivitiesList.ToPagedList(unassignedPage ?? 1, pageSize);
-
-            var viewModel = new ActivitiesIndexViewModel
-            {
-                AssignedActivities = assignedActivities,
-                UnassignedActivities = unassignedActivities
-            };
-
-            return View(viewModel);
+            var pagedActivities = assignedActivities.ToPagedList(pageNumber, pageSize);
+            return View(pagedActivities);
         }
 
-
-        // GET: Activities/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            var schools = await _schoolRoleService.GetAllSchoolsAsync();
+            ViewBag.Schools = new SelectList(schools, "Id", "Name");
             return View();
         }
 
-        // POST: Activities/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Activity activity)
@@ -81,8 +62,13 @@ namespace WebApplication5.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            // Repopulate list on failed validation
+            var schools = await _schoolRoleService.GetAllSchoolsAsync();
+            ViewBag.SchoolList = schools;
             return View(activity);
         }
+
 
         // GET: Activities/Edit/5
         public async Task<IActionResult> Edit(int? id)
