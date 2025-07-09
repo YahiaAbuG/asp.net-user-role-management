@@ -22,26 +22,26 @@ namespace WebApplication5.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ISchoolRoleService _schoolRoleService;
+        private readonly ICurrentSchoolService _currentSchoolService;
 
         public UserManagerController(UserManager<ApplicationUser> userManager, 
             RoleManager<IdentityRole> roleManager, 
             IMapper mapper, 
             IWebHostEnvironment webHostEnvironment,
-            ISchoolRoleService schoolRoleService)
+            ISchoolRoleService schoolRoleService,
+            ICurrentSchoolService currentSchoolService)
         {
             _mapper = mapper;
             _roleManager = roleManager;
             _userManager = userManager;
             _webHostEnvironment = webHostEnvironment;
             _schoolRoleService = schoolRoleService;
+            _currentSchoolService = currentSchoolService;
         }
         [Authorize]
         public async Task<IActionResult> Index(int? page)
         {
-            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
-            {
-                return RedirectToAction(nameof(Index), new { schoolId = 1 });
-            }
+            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
             int pageSize = 10;
@@ -64,10 +64,7 @@ namespace WebApplication5.Controllers
         [AuthorizeSchoolRole("Admin,Manager")]
         public async Task<IActionResult> Manage(string userId)
         {
-            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
-            {
-                return RedirectToAction(nameof(Index), new { schoolId = 1 });
-            }
+            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
             var user = await _userManager.FindByIdAsync(userId);
@@ -150,10 +147,7 @@ namespace WebApplication5.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string userId)
         {
-            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
-            {
-                return RedirectToAction(nameof(Index), new { schoolId = 1 });
-            }
+            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
             var user = await _userManager.FindByIdAsync(userId);
@@ -177,10 +171,7 @@ namespace WebApplication5.Controllers
         [AuthorizeSchoolRole("Admin")]
         public async Task<IActionResult> Create()
         {
-            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
-            {
-                return RedirectToAction(nameof(Index), new { schoolId = 1 });
-            }
+            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
             var roles = await _roleManager.Roles.ToListAsync();
@@ -194,10 +185,7 @@ namespace WebApplication5.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserViewModel model)
         {
-            if (!int.TryParse(HttpContext.Request.Query["schoolId"], out int schoolId))
-            {
-                return RedirectToAction(nameof(Index), new { schoolId = 1 });
-            }
+            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
             if (ModelState.IsValid)

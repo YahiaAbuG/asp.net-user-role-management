@@ -144,5 +144,6 @@ namespace WebApplication5.Data
 
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<WebApplication5.Models.Activity> Activity { get; set; } = default!;
     }
 }

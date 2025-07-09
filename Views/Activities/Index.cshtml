@@ -1,0 +1,88 @@
+﻿@using X.PagedList.Mvc.Core;
+@using X.PagedList;
+@model WebApplication5.Models.ViewModels.ActivitiesIndexViewModel
+
+@{
+    ViewData["Title"] = "Activities";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentSchoolId = ViewBag.CurrentSchoolId;
+}
+
+<br />
+<h1>Activities</h1>
+
+<a asp-action="Create" class="btn btn-primary mb-4">Create New Activity</a>
+
+<h3>Activities Assigned to Current School (ID: @currentSchoolId)</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Activity Name</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.AssignedActivities != null && Model.AssignedActivities.Any())
+        {
+            foreach (var activity in Model.AssignedActivities)
+            {
+                <tr>
+                    <td>@activity.Name</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-primary">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@activity.Id" class="btn btn-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="2">No activities assigned to this school.</td></tr>
+        }
+    </tbody>
+</table>
+<div class="d-flex justify-content-center">
+    @Html.PagedListPager(Model.AssignedActivities, page => Url.Action("Index", new { assignedPage = page }), new PagedListRenderOptions
+    {
+        LiElementClasses = new[] { "page-item" },
+        PageClasses = new[] { "page-link" },
+        UlElementClasses = new[] { "pagination" }
+        })
+</div>
+
+<h3 class="mt-5">Unassigned Activities</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Activity Name</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.UnassignedActivities != null && Model.UnassignedActivities.Any())
+        {
+            foreach (var activity in Model.UnassignedActivities)
+            {
+                <tr>
+                    <td>@activity.Name</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-primary">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@activity.Id" class="btn btn-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="2">No unassigned activities.</td></tr>
+        }
+    </tbody>
+</table>
+<div class="d-flex justify-content-center">
+    @Html.PagedListPager(Model.UnassignedActivities, page => Url.Action("Index", new { unassignedPage = page }), new PagedListRenderOptions
+    {
+        LiElementClasses = new[] { "page-item" },
+        PageClasses = new[] { "page-link" },
+        UlElementClasses = new[] { "pagination" }
+        })
+</div>

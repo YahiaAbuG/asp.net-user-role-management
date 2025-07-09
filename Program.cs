@@ -89,6 +89,10 @@ builder.Services.AddControllers(); // Add this line to register API controllers
 
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<ISchoolRoleService, SchoolRoleService>();
+builder.Services.AddScoped<ICurrentSchoolService, CurrentSchoolService>();
+
+// Required to use session
+builder.Services.AddSession();
 
 var app = builder.Build();
 
@@ -124,6 +128,7 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseSession();
 app.UseRouting();
 
 app.UseAuthentication();

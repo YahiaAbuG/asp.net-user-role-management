@@ -77,19 +77,22 @@
                     <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
-                    <a asp-area="" asp-controller="Home" asp-action="Index" class="nav-link">Home</a>
+                    <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="nav-link">Home</a>
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
-                    <a asp-area="" asp-controller="UserManager" asp-action="Index" class="nav-link">User Manager</a>
+                    <a asp-area="" asp-controller="UserManager" asp-action="Index" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="nav-link">User Manager</a>
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
-                    <a asp-area="" asp-controller="RoleManager" asp-action="Index" class="nav-link">Role Manager</a>
+                    <a asp-area="" asp-controller="RoleManager" asp-action="Index" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="nav-link">Role Manager</a>
+                </li>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <a asp-area="" asp-controller="Activities" asp-action="Index" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="nav-link">Activity Manager</a>
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
                     <a href="/swagger" class="nav-link">Swagger</a>
                 </li>
-                <li class="nav-item d-none d-sm-inline-block">
-                    @await Component.InvokeAsync("SchoolSelector", currentSchoolId)
+                <li class="nav-item d-flex align-items-center ms-auto">
+                    @await Html.PartialAsync("_SchoolSelector", schools)
                 </li>
             </ul>
 

@@ -1,0 +1,25 @@
+﻿@model List<School>
+@{
+    int currentSchoolId = 1;
+    var queryId = Context.Request.Query["schoolId"];
+    if (!string.IsNullOrEmpty(queryId))
+    {
+        int.TryParse(queryId, out currentSchoolId);
+    }
+}
+
+<form method="get" asp-controller="Home" asp-action="Index" id="schoolForm" class="d-flex align-items-center ms-auto">
+    <select name="schoolId" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+        @foreach (var school in Model)
+        {
+            if (school.Id == currentSchoolId)
+            {
+                <option value="@school.Id" selected="selected">@school.Name</option>
+            }
+            else
+            {
+                <option value="@school.Id">@school.Name</option>
+            }
+        }
+    </select>
+</form>
