@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Attributes;
@@ -12,15 +14,24 @@ using X.PagedList.Mvc.Core;
 
 namespace WebApplication5.Controllers
 {
+    [Authorize]
     public class ActivitiesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ICurrentSchoolService _currentSchoolService;
         private readonly ISchoolRoleService _schoolRoleService;
 
-        public ActivitiesController(ApplicationDbContext context, ICurrentSchoolService currentSchoolService, ISchoolRoleService schoolRoleService)
+        public ActivitiesController(ApplicationDbContext context,
+            ICurrentSchoolService currentSchoolService, 
+            ISchoolRoleService schoolRoleService, 
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager)
         {
             _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
             _currentSchoolService = currentSchoolService;
             _schoolRoleService = schoolRoleService;
         }
@@ -178,9 +189,108 @@ namespace WebApplication5.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ActivityExists(int id)
+        // GET: Activities/Manage/5
+        [AuthorizeSchoolRole("Admin, Manager")]
+        public async Task<IActionResult> Manage(int id)
         {
-            return _context.Activity.Any(e => e.Id == id);
+            var activity = await _context.Activity.FindAsync(id);
+            if (activity == null)
+            {
+                return NotFound();
+            }
+
+            int currentSchoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
+
+            var activityAdminRole = await _roleManager.FindByNameAsync("ActivityAdmin");
+            var activityMemberRole = await _roleManager.FindByNameAsync("ActivityMember");
+
+            var userRoles = await _context.UserRoles
+                .Where(ur => ur.ActivityId == id)
+                .ToListAsync();
+
+            var usersInSchool = await _userManager.Users
+                .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.SchoolId == currentSchoolId))
+                .ToListAsync();
+
+            var viewModel = new ManageActivityUsersViewModel
+            {
+                Activity = activity,
+                Users = usersInSchool.Select(u =>
+                {
+                    var roleAssignment = userRoles.FirstOrDefault(ur => ur.UserId == u.Id);
+                    string currentRole = null;
+
+                    if (roleAssignment != null)
+                    {
+                        var roleId = roleAssignment.RoleId;
+                        if (roleId == activityAdminRole?.Id) currentRole = "ActivityAdmin";
+                        else if (roleId == activityMemberRole?.Id) currentRole = "ActivityMember";
+                    }
+
+                    return new ActivityUserRoleAssignment
+                    {
+                        UserId = u.Id,
+                        UserName = u.UserName,
+                        FullName = $"{u.FirstName} {u.LastName}",
+                        CurrentRole = currentRole
+                    };
+                }).ToList()
+            };
+
+            return View(viewModel);
         }
+
+        // POST: Activities/Manage/5
+        [AuthorizeSchoolRole("Admin, Manager")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Manage(int id, List<ActivityUserRoleAssignment> users)
+        {
+            var activity = await _context.Activity.FindAsync(id);
+            if (activity == null)
+            {
+                return NotFound();
+            }
+
+            var adminRole = await _roleManager.FindByNameAsync("ActivityAdmin");
+            var memberRole = await _roleManager.FindByNameAsync("ActivityMember");
+
+            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
+
+            foreach (var userAssignment in users)
+            {
+                var existingRole = await _context.UserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == userAssignment.UserId && ur.ActivityId == id);
+
+                if (existingRole != null)
+                {
+                    // Update role or remove if set to "None"
+                    if (userAssignment.CurrentRole == "ActivityAdmin")
+                        existingRole.RoleId = adminRole.Id;
+                    else if (userAssignment.CurrentRole == "ActivityMember")
+                        existingRole.RoleId = memberRole.Id;
+                    else
+                        _context.UserRoles.Remove(existingRole);
+                }
+                else
+                {
+                    if (userAssignment.CurrentRole == "ActivityAdmin" || userAssignment.CurrentRole == "ActivityMember")
+                    {
+                        var roleId = userAssignment.CurrentRole == "ActivityAdmin" ? adminRole.Id : memberRole.Id;
+                        _context.UserRoles.Add(new ApplicationUserRole
+                        {
+                            UserId = userAssignment.UserId,
+                            ActivityId = id,
+                            SchoolId = schoolId,
+                            RoleId = roleId
+                        });
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
     }
 }

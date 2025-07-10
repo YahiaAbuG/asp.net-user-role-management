@@ -1,0 +1,61 @@
+﻿@model WebApplication5.Models.ViewModels.ManageActivityUsersViewModel
+
+@{
+    ViewData["Title"] = "Manage Activity Roles";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Manage Roles for Activity: @Model.Activity.Name</h1>
+
+<form asp-action="Manage" method="post">
+    <input type="hidden" name="id" value="@Model.Activity.Id" />
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Users.Count; i++)
+            {
+                <tr>
+                    <td>
+                        @Model.Users[i].FullName (@Model.Users[i].UserName)
+                        <input type="hidden" name="users[@i].UserId" value="@Model.Users[i].UserId" />
+                    </td>
+                    <td>
+                        <select name="users[@i].CurrentRole" class="form-control">
+                            @if (Model.Users[i].CurrentRole == "ActivityAdmin")
+                            {
+                                <option value="">None</option>
+                                <option value="ActivityAdmin" selected>Activity Admin</option>
+                                <option value="ActivityMember">Activity Member</option>
+                            }
+                            else if (Model.Users[i].CurrentRole == "ActivityMember")
+                            {
+                                <option value="">None</option>
+                                <option value="ActivityAdmin">Activity Admin</option>
+                                <option value="ActivityMember" selected>Activity Member</option>
+                            } else
+                            {
+                                <option value="" selected>None</option>
+                                <option value="ActivityAdmin">Activity Admin</option>
+                                <option value="ActivityMember">Activity Member</option>
+                            }
+                        </select>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="form-group">
+        <button type="submit" class="btn btn-success">Save Changes</button>
+        <a asp-action="Index" class="btn btn-secondary">Back to Activities</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}
