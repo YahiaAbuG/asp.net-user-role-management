@@ -33,18 +33,52 @@ namespace WebApplication5.Controllers
             int pageSize = 10;
             int pageNumber = page ?? 1;
 
-            // Bring all activities into memory
-            var allActivities = await _context.Activity.ToListAsync();
+            // Get the role IDs for ActivityAdmin and ActivityMember
+            var activityAdminRoleId = await _context.Roles
+                .Where(r => r.Name == "ActivityAdmin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
 
-            // Filter by current school
-            var assignedActivities = allActivities
+            var activityMemberRoleId = await _context.Roles
+                .Where(r => r.Name == "ActivityMember")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            var activities = await _context.Activity
                 .Where(a => a.SchoolId == schoolId)
-                .ToList();
+                .ToListAsync();
 
-            var pagedActivities = assignedActivities.ToPagedList(pageNumber, pageSize);
-            return View(pagedActivities);
+            var userRoles = await _context.UserRoles
+                .Include(ur => ur.User)
+                .Where(ur => ur.ActivityId != null && ur.Activity != null)
+                .ToListAsync();
+
+            var activityVMs = activities.Select(activity =>
+            {
+                var relatedRoles = userRoles.Where(ur => ur.ActivityId == activity.Id);
+
+                return new ActivitiesIndexViewModel
+                {
+                    Id = activity.Id,
+                    Name = activity.Name,
+                    Admins = relatedRoles
+                        .Where(ur => ur.RoleId == activityAdminRoleId)
+                        .Select(ur => $"{ur.User.FirstName} {ur.User.LastName}")
+                        .ToList(),
+
+                    Members = relatedRoles
+                        .Where(ur => ur.RoleId == activityMemberRoleId)
+                        .Select(ur => $"{ur.User.FirstName} {ur.User.LastName}")
+                        .ToList()
+                };
+            });
+
+            var pagedList = activityVMs.ToPagedList(pageNumber, pageSize);
+            return View(pagedList);
         }
 
+
+        // GET: Activities/Create
         public async Task<IActionResult> Create()
         {
             var schools = await _schoolRoleService.GetAllSchoolsAsync();
@@ -52,21 +86,27 @@ namespace WebApplication5.Controllers
             return View();
         }
 
+        // POST: Activities/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Activity activity)
+        public async Task<IActionResult> Create(CreateActivityViewModel model)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(activity);
+                var activity = new Activity
+                {
+                    Name = model.Name,
+                    SchoolId = model.SchoolId
+                };
+
+                _context.Activity.Add(activity);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
-            // Repopulate list on failed validation
             var schools = await _schoolRoleService.GetAllSchoolsAsync();
-            ViewBag.SchoolList = schools;
-            return View(activity);
+            ViewBag.Schools = new SelectList(schools, "Id", "Name", model.SchoolId);
+            return View(model);
         }
 
 

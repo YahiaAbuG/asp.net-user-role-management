@@ -1,6 +1,6 @@
 ﻿@using X.PagedList.Mvc.Core;
 @using X.PagedList;
-@model IPagedList<WebApplication5.Models.Activity>
+@model IPagedList<WebApplication5.Models.ViewModels.ActivitiesIndexViewModel>
 
 @{
     ViewData["Title"] = "Activities";
@@ -13,11 +13,14 @@
 
 <a asp-action="Create" class="btn btn-primary mb-4">Create New Activity</a>
 
-<h3>Activities Assigned to Current School (ID: @currentSchoolId)</h3>
+<h3>Activities Assigned to Current School (ID: @ViewBag.CurrentSchoolId)</h3>
+
 <table class="table table-striped">
     <thead>
         <tr>
             <th>Activity Name</th>
+            <th>Activity Admins</th>
+            <th>Activity Members</th>
             <th>Action</th>
         </tr>
     </thead>
@@ -27,7 +30,9 @@
             foreach (var activity in Model)
             {
                 <tr>
-                    <td>@activity.Name</td>
+                    <td style="font-size: 1.25rem;">@activity.Name</td>
+                    <td>@string.Join(", ", activity.Admins)</td>
+                    <td>@string.Join(", ", activity.Members)</td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-primary">Edit</a>
                         <a asp-action="Delete" asp-route-id="@activity.Id" class="btn btn-danger">Delete</a>
@@ -37,16 +42,16 @@
         }
         else
         {
-            <tr><td colspan="2">No activities assigned to this school.</td></tr>
+            <tr><td colspan="4">No activities assigned to this school.</td></tr>
         }
     </tbody>
 </table>
 
 <div class="d-flex justify-content-center">
     @Html.PagedListPager(Model, page => Url.Action("Index", new { page }), new PagedListRenderOptions
-    {
-        LiElementClasses = new[] { "page-item" },
-        PageClasses = new[] { "page-link" },
-        UlElementClasses = new[] { "pagination" }
-        })
+{
+    LiElementClasses = new[] { "page-item" },
+    PageClasses = new[] { "page-link" },
+    UlElementClasses = new[] { "pagination" }
+})
 </div>

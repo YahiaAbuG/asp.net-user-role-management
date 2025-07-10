@@ -4,7 +4,11 @@ namespace WebApplication5.Models.ViewModels
 {
     public class ActivitiesIndexViewModel
     {
-        public IPagedList<Activity> AssignedActivities { get; set; }
-        public IPagedList<Activity> UnassignedActivities { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
+
+        public List<string> Admins { get; set; } = new();
+        public List<string> Members { get; set; } = new();
     }
+
 }

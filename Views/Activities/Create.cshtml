@@ -1,47 +1,35 @@
-﻿@model WebApplication5.Models.Activity
+﻿@model WebApplication5.Models.ViewModels.CreateActivityViewModel
+
 @{
     ViewData["Title"] = "Create Activity";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
-@if (!ViewData.ModelState.IsValid)
-{
-    <div class="alert alert-danger">
-        <ul>
-            @foreach (var modelState in ViewData.ModelState.Values)
-            {
-                foreach (var error in modelState.Errors)
-                {
-                    <li>@error.ErrorMessage</li>
-                }
-            }
-        </ul>
-    </div>
-}
-
 
 <h1>Create Activity</h1>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
 
-<form asp-action="Create" method="post">
-    <div class="form-group">
-        <label asp-for="Name" class="control-label">Activity Name</label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
+            <div class="form-group">
+                <label asp-for="SchoolId" class="control-label">School</label>
+                <select asp-for="SchoolId" class="form-control" asp-items="ViewBag.Schools">
+                    <option value="">-- Select School --</option>
+                </select>
+                <span asp-validation-for="SchoolId" class="text-danger"></span>
+            </div>
 
-    <div class="form-group mt-3">
-        <label asp-for="SchoolId" class="control-label">Select School</label>
-        <select asp-for="SchoolId" class="form-control" asp-items="ViewBag.Schools">
-            <option value="">-- Select School --</option>
-        </select>
-        <span asp-validation-for="SchoolId" class="text-danger"></span>
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
     </div>
-
-    <div class="form-group mt-4">
-        <input type="submit" value="Create" class="btn btn-primary" />
-        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
-    </div>
-</form>
+</div>
 
 @section Scripts {
     @{
