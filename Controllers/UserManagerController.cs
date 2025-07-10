@@ -227,14 +227,6 @@ namespace WebApplication5.Controllers
             }
             var model = _mapper.Map<EditUserViewModel>(user);
             ViewBag.ProfileImagePath = user.ProfileImagePath;
-            //var model = new EditUserViewModel
-            //{
-            //    Id = user.Id,
-            //    Email = user.Email,
-            //    UserName = user.UserName,
-            //    FirstName = user.FirstName,
-            //    LastName = user.LastName
-            //};
             return View(model);
         }
 

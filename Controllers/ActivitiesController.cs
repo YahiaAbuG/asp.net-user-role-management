@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using WebApplication5.Attributes;
 using WebApplication5.Data;
 using WebApplication5.Models;
 using WebApplication5.Models.Interfaces;
@@ -33,7 +34,7 @@ namespace WebApplication5.Controllers
             int pageSize = 10;
             int pageNumber = page ?? 1;
 
-            // Get the role IDs for ActivityAdmin and ActivityMember
+            // Get role IDs
             var activityAdminRoleId = await _context.Roles
                 .Where(r => r.Name == "ActivityAdmin")
                 .Select(r => r.Id)
@@ -50,31 +51,24 @@ namespace WebApplication5.Controllers
 
             var userRoles = await _context.UserRoles
                 .Include(ur => ur.User)
-                .Where(ur => ur.ActivityId != null && ur.Activity != null)
+                .Where(ur => ur.ActivityId != null)
                 .ToListAsync();
 
-            var activityVMs = activities.Select(activity =>
+            var viewModels = activities.Select(a => new ActivitiesIndexViewModel
             {
-                var relatedRoles = userRoles.Where(ur => ur.ActivityId == activity.Id);
+                Id = a.Id,
+                Name = a.Name,
+                Admins = userRoles
+                    .Where(ur => ur.ActivityId == a.Id && ur.RoleId == activityAdminRoleId)
+                    .Select(ur => $"{ur.User.FirstName} {ur.User.LastName}")
+                    .ToList(),
+                Members = userRoles
+                    .Where(ur => ur.ActivityId == a.Id && ur.RoleId == activityMemberRoleId)
+                    .Select(ur => $"{ur.User.FirstName} {ur.User.LastName}")
+                    .ToList()
+            }).ToList();
 
-                return new ActivitiesIndexViewModel
-                {
-                    Id = activity.Id,
-                    Name = activity.Name,
-                    Admins = relatedRoles
-                        .Where(ur => ur.RoleId == activityAdminRoleId)
-                        .Select(ur => $"{ur.User.FirstName} {ur.User.LastName}")
-                        .ToList(),
-
-                    Members = relatedRoles
-                        .Where(ur => ur.RoleId == activityMemberRoleId)
-                        .Select(ur => $"{ur.User.FirstName} {ur.User.LastName}")
-                        .ToList()
-                };
-            });
-
-            var pagedList = activityVMs.ToPagedList(pageNumber, pageSize);
-            return View(pagedList);
+            return View(viewModels.ToPagedList(pageNumber, pageSize));
         }
 
 
@@ -111,68 +105,76 @@ namespace WebApplication5.Controllers
 
 
         // GET: Activities/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
         {
-            if (id == null)
-                return NotFound();
-
-            var activity = await _context.Activity.FindAsync(id);
+            var activity = await _context.Activity.FirstOrDefaultAsync(a => a.Id == id);
             if (activity == null)
+            {
                 return NotFound();
+            }
 
-            return View(activity);
+            var viewModel = new EditActivityViewModel
+            {
+                Id = activity.Id,
+                Name = activity.Name
+            };
+
+            return View(viewModel);
         }
 
         // POST: Activities/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Activity activity)
+        public async Task<IActionResult> Edit(EditActivityViewModel model)
         {
-            if (id != activity.Id)
-                return NotFound();
-
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(activity);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ActivityExists(activity.Id))
-                        return NotFound();
-                    else
-                        throw;
-                }
-                return RedirectToAction(nameof(Index));
+                return View(model);
             }
-            return View(activity);
+
+            var activity = await _context.Activity.FirstOrDefaultAsync(a => a.Id == model.Id);
+            if (activity == null)
+            {
+                return NotFound();
+            }
+
+            activity.Name = model.Name;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index");
         }
 
         // GET: Activities/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        [AuthorizeSchoolRole("Admin,Manager")]
+        public async Task<IActionResult> Delete(int id)
         {
-            if (id == null)
-                return NotFound();
-
-            var activity = await _context.Activity.FirstOrDefaultAsync(m => m.Id == id);
+            var activity = await _context.Activity.FirstOrDefaultAsync(a => a.Id == id);
             if (activity == null)
-                return NotFound();
+            {
+                ViewBag.ErrorMessage = $"Activity with ID = {id} cannot be found";
+                return View("NotFound");
+            }
 
             return View(activity);
         }
 
         // POST: Activities/Delete/5
+        [AuthorizeSchoolRole("Admin,Manager")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var activity = await _context.Activity.FindAsync(id);
-            if (activity != null)
-                _context.Activity.Remove(activity);
+            var activity = await _context.Activity.FirstOrDefaultAsync(a => a.Id == id);
+            if (activity == null)
+            {
+                ViewBag.ErrorMessage = $"Activity with ID = {id} cannot be found";
+                return RedirectToAction(nameof(Index));
+            }
 
+            _context.Activity.Remove(activity);
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 
