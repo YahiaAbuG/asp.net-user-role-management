@@ -34,9 +34,9 @@
                     <td>@string.Join(", ", activity.Admins)</td>
                     <td>@string.Join(", ", activity.Members)</td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-primary">Edit</a>
-                        <a asp-action="Manage" asp-route-id="@activity.Id" class="btn btn-primary">Manage</a>
-                        <a asp-action="Delete" asp-route-id="@activity.Id" class="btn btn-danger">Delete</a>
+                        <a asp-action="Edit" asp-route-id="@activity.Id" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="btn btn-primary">Edit</a>
+                        <a asp-action="Manage" asp-route-id="@activity.Id" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="btn btn-primary">Manage</a>
+                        <a asp-action="Delete" asp-route-id="@activity.Id" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="btn btn-danger">Delete</a>
                     </td>
                 </tr>
             }

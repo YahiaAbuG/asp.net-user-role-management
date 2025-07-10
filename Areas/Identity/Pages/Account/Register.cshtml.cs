@@ -17,36 +17,48 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using WebApplication5.Data;
 using WebApplication5.Models;
+using WebApplication5.Models.Interfaces;
 
 namespace WebApplication5.Areas.Identity.Pages.Account
 {
     public class RegisterModel : PageModel
     {
+        private readonly ApplicationDbContext _context;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUserStore<ApplicationUser> _userStore;
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly ISchoolRoleService _schoolRoleService;
 
         public RegisterModel(
+            ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender, ISchoolRoleService schoolRoleService)
         {
+            _context = context;
             _userManager = userManager;
+            _roleManager = roleManager;
             _userStore = userStore;
             _emailStore = GetEmailStore();
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _schoolRoleService = schoolRoleService;
         }
-
+        public List<SelectListItem> Schools { get; set; }
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -106,6 +118,9 @@ namespace WebApplication5.Areas.Identity.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
+            [Required(ErrorMessage = "Please select a school.")]
+            public int SchoolId { get; set; }
         }
 
 
@@ -113,6 +128,14 @@ namespace WebApplication5.Areas.Identity.Pages.Account
         {
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            var schools = await _schoolRoleService.GetAllSchoolsAsync();
+            Schools = schools.Select(s => new SelectListItem
+            {
+                Value = s.Id.ToString(),
+                Text = s.Name
+            }).ToList();
+
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
@@ -142,7 +165,20 @@ namespace WebApplication5.Areas.Identity.Pages.Account
                     user.GenerateQrCode();
 
                     var userId = await _userManager.GetUserIdAsync(user);
-                    await _userManager.AddToRoleAsync(user, "Member");
+
+                    var role = await _roleManager.FindByNameAsync("Member");
+
+                    var userRole = new ApplicationUserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = role.Id,
+                        SchoolId = Input.SchoolId,
+                        ActivityId = null
+                    };
+
+                    _context.UserRoles.Add(userRole);
+                    await _context.SaveChangesAsync();
+
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
                     var callbackUrl = Url.Page(

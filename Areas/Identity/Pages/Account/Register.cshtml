@@ -54,6 +54,17 @@
                         </div>
                     </div>
                 </div>
+                <div class="input-group mb-3">
+                    <select asp-for="Input.SchoolId" class="form-control" asp-items="Model.Schools">
+                        <option value="">-- Select School --</option>
+                    </select>
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-school"></span>
+                        </div>
+                    </div>
+                </div>
+                <span asp-validation-for="Input.SchoolId" class="text-danger"></span>
                 <div class="row">
                     <div class="col-8">
                         <div class="icheck-primary">
