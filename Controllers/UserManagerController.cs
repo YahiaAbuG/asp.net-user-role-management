@@ -54,7 +54,7 @@ namespace WebApplication5.Controllers
 
             // Filter users who belong to the current school
             var userIdsInSchool = await _context.UserRoles
-                .Where(ur => ur.SchoolId == schoolId)
+                //.Where(ur => ur.SchoolId == schoolId)
                 .Select(ur => ur.UserId)
                 .Distinct()
                 .ToListAsync();
@@ -77,10 +77,20 @@ namespace WebApplication5.Controllers
 
 
         // GET
-        [AuthorizeSchoolRole("Admin,Manager")]
+        [AuthorizeSchoolRole("Admin, Manager")]
         public async Task<IActionResult> Manage(string userId)
         {
             var schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUserId = currentUser?.Id;
+
+            if (await _schoolRoleService.IsUserInRoleAsync(userId, "SuperAdmin", 0) && !(await _schoolRoleService.IsUserInRoleAsync(currentUserId, "SuperAdmin", 0)))
+                return Forbid();
+
+            if (await _schoolRoleService.IsUserInRoleAsync(currentUserId, "Manager", schoolId) && (await _schoolRoleService.IsUserInRoleAsync(userId, "Admin", schoolId)))
+                return Forbid();
+
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return View("NotFound");
 

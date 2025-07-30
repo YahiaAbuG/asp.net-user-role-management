@@ -8,11 +8,14 @@ namespace WebApplication5.Attributes
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
     public class AuthorizeSchoolRoleAttribute : Attribute, IAuthorizationFilter
     {
-        private readonly string _requiredRole;
+        private readonly List<string> _requiredRoles;
 
-        public AuthorizeSchoolRoleAttribute(string requiredRole)
+        public AuthorizeSchoolRoleAttribute(string requiredRoles)
         {
-            _requiredRole = requiredRole;
+            _requiredRoles = requiredRoles
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(role => role.Trim())
+                .ToList();
         }
 
         public void OnAuthorization(AuthorizationFilterContext context)
@@ -47,7 +50,13 @@ namespace WebApplication5.Attributes
 
             var roleService = context.HttpContext.RequestServices.GetService<ISchoolRoleService>();
 
-            var isInRole = roleService.IsUserInRoleAsync(userId, _requiredRole, schoolId).GetAwaiter().GetResult();
+            var isInRole = false;
+
+            foreach (var role in _requiredRoles)
+            {
+                if (roleService.IsUserInRoleAsync(userId, role, schoolId).GetAwaiter().GetResult())
+                    isInRole = true;
+            }
 
             if (!isInRole)
             {
