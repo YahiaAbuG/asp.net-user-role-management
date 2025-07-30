@@ -1,0 +1,25 @@
+﻿@model WebApplication5.Models.ViewModels.DeleteUserRoleViewModel
+@{
+    ViewData["Title"] = "Confirm Role Deletion";
+}
+
+<h2>Remove Role</h2>
+
+<p>Are you sure you want to remove the following role from <strong>@Model.UserName</strong>?</p>
+
+<ul>
+    <li><strong>Role:</strong> @Model.RoleName</li>
+    <li><strong>School:</strong> @Model.SchoolName</li>
+    <li><strong>Activity:</strong> @Model.ActivityName</li>
+</ul>
+
+<form asp-action="DeleteUserRoleConfirmed" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="UserId" />
+    <input type="hidden" asp-for="RoleId" />
+    <input type="hidden" asp-for="SchoolId" />
+    <input type="hidden" asp-for="ActivityId" />
+    <button type="submit" class="btn btn-danger">Confirm Remove</button>
+    <a asp-action="Manage" asp-route-userId="@Model.UserId" class="btn btn-secondary">Cancel</a>
+</form>
+

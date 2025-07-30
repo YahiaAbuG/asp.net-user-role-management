@@ -26,6 +26,11 @@ namespace WebApplication5.Models.ViewModels
         public string SchoolName { get; set; }
         public string ActivityName { get; set; } // null or "N/A" for school roles
         public string RoleName { get; set; }
+
+        // Hidden metadata for removal
+        public int? SchoolId { get; set; }
+        public int? ActivityId { get; set; }
+        public string RoleId { get; set; }
     }
 
     public class RoleAssignmentForm

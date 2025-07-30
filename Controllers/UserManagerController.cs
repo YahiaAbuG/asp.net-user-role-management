@@ -115,11 +115,19 @@ namespace WebApplication5.Controllers
                 {
                     SchoolName = role.School?.Name ?? "N/A",
                     ActivityName = role.Activity?.Name ?? "N/A",
-                    RoleName = roleName
+                    RoleName = roleName,
+                    SchoolId = role.School?.Id,
+                    RoleId = role.RoleId,
+                    ActivityId = role.Activity?.Id
                 });
             }
 
-            model.UserRolesTable = userRoleDisplays;
+            model.UserRolesTable = userRoleDisplays
+                .OrderBy(r => r.SchoolId == null && r.ActivityId == null ? 0 :
+                              r.SchoolId != null && r.ActivityId == null ? 1 : 2)
+                .ThenBy(r => r.SchoolName)
+                .ThenBy(r => r.ActivityName)
+                .ToList();
 
             // Populate form dropdowns
             model.Form.AvailableSchools = await _context.Schools
@@ -150,39 +158,59 @@ namespace WebApplication5.Controllers
             var superAdmin = await _roleManager.FindByNameAsync("SuperAdmin");
             var hasSuperAdmin = await _context.UserRoles.AnyAsync(r => r.UserId == user.Id && r.RoleId == superAdmin.Id);
 
-            if (model.GeneralRoles.First().Selected && !hasSuperAdmin)
+            if (model.GeneralRoles != null && model.GeneralRoles.Any())
             {
-                _context.UserRoles.Add(new ApplicationUserRole { UserId = user.Id, RoleId = superAdmin.Id });
-            }
-            else if (!model.GeneralRoles.First().Selected && hasSuperAdmin)
-            {
-                var entry = await _context.UserRoles.FirstOrDefaultAsync(r => r.UserId == user.Id && r.RoleId == superAdmin.Id);
-                _context.UserRoles.Remove(entry);
+                var selected = model.GeneralRoles.First().Selected;
+
+                if (selected && !hasSuperAdmin)
+                {
+                    _context.UserRoles.Add(new ApplicationUserRole { UserId = user.Id, RoleId = superAdmin.Id });
+                }
+                else if (!selected && hasSuperAdmin)
+                {
+                    var entry = await _context.UserRoles.FirstOrDefaultAsync(r => r.UserId == user.Id && r.RoleId == superAdmin.Id);
+                    if (entry != null) _context.UserRoles.Remove(entry);
+                }
             }
 
-            // Assign new school/activity role
+            // Assign new role
             if (!string.IsNullOrEmpty(model.Form.SelectedRoleName))
             {
                 var role = await _roleManager.FindByNameAsync(model.Form.SelectedRoleName);
+
+                var isActivityRole = model.Form.SelectedRoleName == "ActivityAdmin" || model.Form.SelectedRoleName == "ActivityMember";
+                var selectedActivityId = isActivityRole ? model.Form.SelectedActivityId : null;
+
+                var exists = await _context.UserRoles.AnyAsync(r =>
+                    r.UserId == user.Id &&
+                    r.RoleId == role.Id &&
+                    r.SchoolId == model.Form.SelectedSchoolId &&
+                    r.ActivityId == selectedActivityId);
+
                 if (role != null)
                 {
-                    var newRole = new ApplicationUserRole
-                    {
-                        UserId = user.Id,
-                        RoleId = role.Id,
-                        SchoolId = model.Form.SelectedSchoolId,
-                        ActivityId = model.Form.SelectedRoleName is "ActivityAdmin" or "ActivityMember"
-                                     ? model.Form.SelectedActivityId
-                                     : null
-                    };
 
-                    _context.UserRoles.Add(newRole);
+                    if (!exists)
+                    {
+                        var newRole = new ApplicationUserRole
+                        {
+                            UserId = user.Id,
+                            RoleId = role.Id,
+                            SchoolId = model.Form.SelectedSchoolId,
+                            ActivityId = model.Form.SelectedRoleName is "ActivityAdmin" or "ActivityMember"
+                                         ? model.Form.SelectedActivityId
+                                         : null
+                        };
+
+                        _context.UserRoles.Add(newRole);
+                    }
                 }
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction("Manage", new { userId = model.UserId });
         }
+
 
         [HttpGet]
         public async Task<IActionResult> GetActivitiesBySchool(int schoolId)
@@ -193,6 +221,46 @@ namespace WebApplication5.Controllers
                 .ToListAsync();
 
             return Json(activities);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DeleteUserRole(string userId, string roleId, int? schoolId, int? activityId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            var role = await _roleManager.FindByIdAsync(roleId);
+
+            var model = new DeleteUserRoleViewModel
+            {
+                UserId = userId,
+                UserName = user?.UserName,
+                RoleId = roleId,
+                RoleName = role?.Name,
+                SchoolId = schoolId,
+                ActivityId = activityId,
+                SchoolName = schoolId.HasValue ? (await _context.Schools.FindAsync(schoolId))?.Name : "N/A",
+                ActivityName = activityId.HasValue ? (await _context.Activity.FindAsync(activityId))?.Name : "N/A"
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUserRoleConfirmed(DeleteUserRoleViewModel model)
+        {
+            var entry = await _context.UserRoles.FirstOrDefaultAsync(r =>
+                r.UserId == model.UserId &&
+                r.RoleId == model.RoleId &&
+                r.SchoolId == model.SchoolId &&
+                r.ActivityId == model.ActivityId);
+
+            if (entry != null)
+            {
+                _context.UserRoles.Remove(entry);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Manage", new { userId = model.UserId });
         }
 
         // GET

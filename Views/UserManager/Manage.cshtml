@@ -34,15 +34,26 @@
                 <th>School</th>
                 <th>Activity</th>
                 <th>Role</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var role in Model.UserRolesTable)
+            @for (int i = 0; i < Model.UserRolesTable.Count; i++)
             {
                 <tr>
-                    <td>@role.SchoolName</td>
-                    <td>@role.ActivityName</td>
-                    <td>@role.RoleName</td>
+                    <td>@Model.UserRolesTable[i].SchoolName</td>
+                    <td>@Model.UserRolesTable[i].ActivityName</td>
+                    <td>@Model.UserRolesTable[i].RoleName</td>
+                    <td>
+                        <a asp-action="DeleteUserRole" asp-route-userId="@Model.UserId"
+                           asp-route-roleId="@Model.UserRolesTable[i].RoleId"
+                           asp-route-schoolId="@Model.UserRolesTable[i].SchoolId"
+                           asp-route-activityId="@Model.UserRolesTable[i].ActivityId"
+                           class="btn btn-danger btn-sm">
+                            Remove
+                        </a>
+                    </td>
+
                 </tr>
             }
         </tbody>
