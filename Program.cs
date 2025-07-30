@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using WebApplication5.Data;
+using WebApplication5.Handlers;
 using WebApplication5.Models;
 using WebApplication5.Models.Interfaces;
+using WebApplication5.Requirements;
 using WebApplication5.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -90,6 +93,15 @@ builder.Services.AddControllers(); // Add this line to register API controllers
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<ISchoolRoleService, SchoolRoleService>();
 builder.Services.AddScoped<ICurrentSchoolService, CurrentSchoolService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthorizationHandler, ActivityAdminHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ActivityAdminForActivity", policy =>
+        policy.Requirements.Add(new ActivityAdminRequirement()));
+});
+
 
 // Required to use session
 builder.Services.AddSession();
