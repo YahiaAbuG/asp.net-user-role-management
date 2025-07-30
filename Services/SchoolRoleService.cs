@@ -38,11 +38,19 @@ namespace WebApplication5.Services
             var role = await _roleManager.FindByNameAsync(roleName);
             if (role == null) return false;
 
+            if (roleName == "SuperAdmin")
+            {
+                return await _context.UserRoles.AnyAsync(r =>
+                    r.UserId == userId &&
+                    r.RoleId == role.Id
+                );
+            }
+
             return await _context.UserRoles.AnyAsync(r =>
                 r.UserId == userId &&
                 r.SchoolId == schoolId &&
                 r.RoleId == role.Id);
-        }
+        }   
 
 
         public async Task AssignRolesAsync(string userId, IEnumerable<string> roleNames, int schoolId)

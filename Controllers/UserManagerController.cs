@@ -12,11 +12,13 @@ using System.IO.Compression;
 using X.PagedList;
 using X.PagedList.Extensions;
 using WebApplication5.Models.Interfaces;
+using WebApplication5.Data;
 
 namespace WebApplication5.Controllers
 {
     public class UserManagerController : Controller
     {
+        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
@@ -29,8 +31,10 @@ namespace WebApplication5.Controllers
             IMapper mapper, 
             IWebHostEnvironment webHostEnvironment,
             ISchoolRoleService schoolRoleService,
-            ICurrentSchoolService currentSchoolService)
+            ICurrentSchoolService currentSchoolService,
+            ApplicationDbContext context)
         {
+            _context = context;
             _mapper = mapper;
             _roleManager = roleManager;
             _userManager = userManager;
@@ -38,6 +42,7 @@ namespace WebApplication5.Controllers
             _schoolRoleService = schoolRoleService;
             _currentSchoolService = currentSchoolService;
         }
+
         [Authorize]
         public async Task<IActionResult> Index(int? page)
         {
@@ -46,7 +51,18 @@ namespace WebApplication5.Controllers
 
             int pageSize = 10;
             int pageNumber = (page ?? 1);
-            var users = await _userManager.Users.ToListAsync();
+
+            // Filter users who belong to the current school
+            var userIdsInSchool = await _context.UserRoles
+                .Where(ur => ur.SchoolId == schoolId)
+                .Select(ur => ur.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            var users = await _userManager.Users
+                .Where(u => userIdsInSchool.Contains(u.Id))
+                .ToListAsync();
+
             var userRolesViewModel = _mapper.Map<List<UserRolesViewModel>>(users);
 
             foreach (var userViewModel in userRolesViewModel)
@@ -64,35 +80,58 @@ namespace WebApplication5.Controllers
         [AuthorizeSchoolRole("Admin,Manager")]
         public async Task<IActionResult> Manage(string userId)
         {
-            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
-            ViewBag.CurrentSchoolId = schoolId;
-
+            var schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
+            if (user == null) return View("NotFound");
+
+            var model = new ManageRolesViewModel
             {
-                ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
-                return View("NotFound");
+                UserId = user.Id,
+                UserName = user.UserName
+            };
+
+            // General roles (SuperAdmin only)
+            var superAdminRole = await _roleManager.FindByNameAsync("SuperAdmin");
+            model.GeneralRoles.Add(new RoleCheckboxViewModel
+            {
+                RoleId = superAdminRole.Id,
+                RoleName = superAdminRole.Name,
+                Selected = await _context.UserRoles.AnyAsync(r => r.UserId == user.Id && r.RoleId == superAdminRole.Id)
+            });
+
+            var rolesWithMeta = await _context.UserRoles
+                .Include(r => r.School)
+                .Include(r => r.Activity)
+                .Where(r => r.UserId == userId)
+                .ToListAsync();
+
+            var userRoleDisplays = new List<UserRoleDisplayViewModel>();
+
+            foreach (var role in rolesWithMeta)
+            {
+                var roleName = (await _roleManager.FindByIdAsync(role.RoleId))?.Name ?? "N/A";
+
+                userRoleDisplays.Add(new UserRoleDisplayViewModel
+                {
+                    SchoolName = role.School?.Name ?? "N/A",
+                    ActivityName = role.Activity?.Name ?? "N/A",
+                    RoleName = roleName
+                });
             }
 
-            var isUserAdmin = await _schoolRoleService.IsUserInRoleAsync(user.Id, "Admin", schoolId);
-            var currentUser = await _userManager.GetUserAsync(User);
-            ViewBag.isCurrentUserAdmin = await _schoolRoleService.IsUserInRoleAsync(currentUser.Id, "Admin", schoolId);
+            model.UserRolesTable = userRoleDisplays;
 
-            if (isUserAdmin && !ViewBag.isCurrentUserAdmin)
-            {
-                return Forbid();
-            }
+            // Populate form dropdowns
+            model.Form.AvailableSchools = await _context.Schools
+                .Select(s => new SelectListItem { Text = s.Name, Value = s.Id.ToString() })
+                .ToListAsync();
 
-            ViewBag.UserName = user.UserName;
-            var roles = await _roleManager.Roles.ToListAsync();
-            ViewBag.AdminRoleId = (await _roleManager.FindByNameAsync("Admin"))?.Id;
+            model.Form.AvailableRoles = await _roleManager.Roles
+                .Where(r => r.Name != "SuperAdmin")
+                .Select(r => new SelectListItem { Text = r.Name, Value = r.Name })
+                .ToListAsync();
 
-            var model = _mapper.Map<List<ManageUserRolesViewModel>>(roles);
-
-            foreach (var roleViewModel in model)
-            {
-                roleViewModel.Selected = await _schoolRoleService.IsUserInRoleAsync(user.Id, roleViewModel.RoleName, schoolId);
-            }
+            model.Form.AvailableActivities = new List<SelectListItem>(); // Will be dynamically populated via AJAX
 
             return View(model);
         }
@@ -101,32 +140,60 @@ namespace WebApplication5.Controllers
         // POST
         [AuthorizeSchoolRole("Admin,Manager")]
         [HttpPost]
-        public async Task<IActionResult> Manage(List<ManageUserRolesViewModel> model, string userId, int schoolId)
+        [ActionName("Manage")]
+        public async Task<IActionResult> Manage(ManageRolesViewModel model)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return View("NotFound");
+
+            // Update general role (SuperAdmin)
+            var superAdmin = await _roleManager.FindByNameAsync("SuperAdmin");
+            var hasSuperAdmin = await _context.UserRoles.AnyAsync(r => r.UserId == user.Id && r.RoleId == superAdmin.Id);
+
+            if (model.GeneralRoles.First().Selected && !hasSuperAdmin)
             {
-                ViewBag.ErrorMessage = $"User with Id = {userId} cannot be found";
-                return View("NotFound");
+                _context.UserRoles.Add(new ApplicationUserRole { UserId = user.Id, RoleId = superAdmin.Id });
+            }
+            else if (!model.GeneralRoles.First().Selected && hasSuperAdmin)
+            {
+                var entry = await _context.UserRoles.FirstOrDefaultAsync(r => r.UserId == user.Id && r.RoleId == superAdmin.Id);
+                _context.UserRoles.Remove(entry);
             }
 
-            // Validate that at least one role is selected (optional)
-            if (!model.Any(r => r.Selected))
+            // Assign new school/activity role
+            if (!string.IsNullOrEmpty(model.Form.SelectedRoleName))
             {
-                ModelState.AddModelError("", "You must select at least one role.");
-                return View(model);
+                var role = await _roleManager.FindByNameAsync(model.Form.SelectedRoleName);
+                if (role != null)
+                {
+                    var newRole = new ApplicationUserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = role.Id,
+                        SchoolId = model.Form.SelectedSchoolId,
+                        ActivityId = model.Form.SelectedRoleName is "ActivityAdmin" or "ActivityMember"
+                                     ? model.Form.SelectedActivityId
+                                     : null
+                    };
+
+                    _context.UserRoles.Add(newRole);
+                }
             }
 
-            // Assign roles using your SchoolRoleService
-            var selectedRoles = model
-                .Where(x => x.Selected)
-                .Select(x => x.RoleName);
-
-            await _schoolRoleService.AssignRolesAsync(user.Id, selectedRoles, schoolId);
-
-            return RedirectToAction("Index", new { schoolId });
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Manage", new { userId = model.UserId });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetActivitiesBySchool(int schoolId)
+        {
+            var activities = await _context.Activity
+                .Where(a => a.SchoolId == schoolId)
+                .Select(a => new { a.Id, a.Name })
+                .ToListAsync();
+
+            return Json(activities);
+        }
 
         // GET
         [AuthorizeSchoolRole("Admin,Manager")]

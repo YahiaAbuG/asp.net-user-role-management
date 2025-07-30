@@ -1,52 +1,131 @@
-﻿@model List<WebApplication5.Models.ViewModels.ManageUserRolesViewModel>
+﻿@model WebApplication5.Models.ViewModels.ManageRolesViewModel
 @{
-    ViewData["Title"] = "Manage";
+    ViewData["Title"] = "Manage Roles";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<form method="post">
-    <div class="card">
-        <div class="card-header">
-            <h2>Manage User Roles</h2>
-            Add/Remove Roles for @ViewBag.UserName.
+<h2>Manage Roles for @Model.UserName</h2>
+
+<form asp-action="Manage" method="post">
+    <input type="hidden" asp-for="UserId" />
+
+    <!-- General Roles -->
+    <h4>General Roles</h4>
+    @for (int i = 0; i < Model.GeneralRoles.Count; i++)
+    {
+        <div class="form-check">
+            <input type="hidden" name="GeneralRoles[@i].RoleId" value="@Model.GeneralRoles[i].RoleId" />
+            <input type="hidden" name="GeneralRoles[@i].RoleName" value="@Model.GeneralRoles[i].RoleName" />
+            <input class="form-check-input"
+                   type="checkbox"
+                   name="GeneralRoles[@i].Selected"
+                   value="true"
+                   @(Model.GeneralRoles[i].Selected ? "checked" : "") />
+            <label class="form-check-label">@Model.GeneralRoles[i].RoleName</label>
         </div>
-        <div class="card-body">
-            @for (int i = 0; i < Model.Count; i++)
+    }
+
+    <hr />
+
+    <!-- Table of Existing Roles -->
+    <h4>School Roles</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>School</th>
+                <th>Activity</th>
+                <th>Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var role in Model.UserRolesTable)
             {
-                @if (Model[i].RoleId == ViewBag.AdminRoleId) {
-                    <div class="form-check m-1">
-                        <input type="hidden" asp-for="@Model[i].RoleId" />
-                        <input type="hidden" asp-for="@Model[i].RoleName" />
-                        @if (!(bool)ViewBag.isCurrentUserAdmin || ViewBag.UserName == "admin")
-                        {
-                            <input asp-for="@Model[i].Selected" class="form-check-input" disabled />
+                <tr>
+                    <td>@role.SchoolName</td>
+                    <td>@role.ActivityName</td>
+                    <td>@role.RoleName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <hr />
+
+    <!-- Assign New Role Form -->
+    <h4>Assign New Role</h4>
+    <div class="form-group">
+        <label for="SelectedSchoolId">School</label>
+        <select asp-for="Form.SelectedSchoolId" class="form-control" asp-items="Model.Form.AvailableSchools" id="schoolDropdown">
+            <option value="">-- Select School --</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="SelectedRoleName">Role</label>
+        <select asp-for="Form.SelectedRoleName" class="form-control" asp-items="Model.Form.AvailableRoles" id="roleDropdown">
+            <option value="">-- Select Role --</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="SelectedActivityId">Activity (only required for Activity roles)</label>
+        <select asp-for="Form.SelectedActivityId" class="form-control" id="activityDropdown">
+            <option value="">-- Select Activity --</option>
+        </select>
+    </div>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <button type="submit" class="btn btn-primary">Assign Role</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Initially hide activity dropdown
+            toggleActivityDropdown();
+
+            $('#schoolDropdown').on('change', function () {
+                var schoolId = $(this).val();
+                $('#activityDropdown').empty().append('<option value="">-- Select Activity --</option>');
+
+                if (schoolId) {
+                    $.ajax({
+                        url: '/UserManager/GetActivitiesBySchool',
+                        type: 'GET',
+                        data: { schoolId: schoolId },
+                        success: function (data) {
+                            data.forEach(function (activity) {
+                                $('#activityDropdown').append(
+                                    $('<option>', {
+                                        value: activity.id,
+                                        text: activity.name
+                                    })
+                                );
+                            });
+                        },
+                        error: function () {
+                            alert('Could not load activities. Please try again.');
                         }
-                        else
-                        {
-							<input asp-for="@Model[i].Selected" class="form-check-input" />
-                        }
-                        <label class="form-check-label" asp-for="@Model[i].Selected">
-                            @Model[i].RoleName
-                        </label>
-                    </div>
+                    });
                 }
-                else
-                {
-                    <div class="form-check m-1">
-                        <input type="hidden" asp-for="@Model[i].RoleId" />
-                        <input type="hidden" asp-for="@Model[i].RoleName" />
-                        <input asp-for="@Model[i].Selected" class="form-check-input" />
-                        <label class="form-check-label" asp-for="@Model[i].Selected">
-                            @Model[i].RoleName
-                        </label>
-                    </div>
+            });
+
+            $('#roleDropdown').on('change', function () {
+                toggleActivityDropdown();
+            });
+
+            function toggleActivityDropdown() {
+                var selectedRole = $('#roleDropdown').val();
+                var shouldShow = selectedRole === 'ActivityAdmin' || selectedRole === 'ActivityMember';
+
+                if (shouldShow) {
+                    $('#activityDropdown').closest('.form-group').show();
+                } else {
+                    $('#activityDropdown').closest('.form-group').hide();
                 }
             }
-            <div asp-validation-summary="All" class="text-danger"></div>
-        </div>
-        <div class="card-footer">
-            <input type="submit" value="Update" class="btn btn-primary"
-                   style="width:auto" />
-            <a asp-action="Index" class="btn btn-primary" style="width:auto">Cancel</a>
-        </div>
-    </div>
-</form>
+        });
+    </script>
+}
