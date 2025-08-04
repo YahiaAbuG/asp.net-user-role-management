@@ -95,11 +95,14 @@ builder.Services.AddScoped<ISchoolRoleService, SchoolRoleService>();
 builder.Services.AddScoped<ICurrentSchoolService, CurrentSchoolService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, ActivityAdminHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, SchoolAdminHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("ActivityAdminForActivity", policy =>
         policy.Requirements.Add(new ActivityAdminRequirement()));
+    options.AddPolicy("SchoolAdmin", policy =>
+        policy.Requirements.Add(new SchoolAdminRequirement()));
 });
 
 

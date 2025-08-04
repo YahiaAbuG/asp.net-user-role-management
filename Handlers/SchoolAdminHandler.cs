@@ -1,41 +1,37 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using WebApplication5.Data;
 using WebApplication5.Models;
 using WebApplication5.Requirements;
 
 namespace WebApplication5.Handlers
 {
-
-    public class ActivityAdminHandler : AuthorizationHandler<ActivityAdminRequirement>
+    public class SchoolAdminHandler : AuthorizationHandler<SchoolAdminRequirement>
     {
+
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public ActivityAdminHandler(ApplicationDbContext context,
-                                    IHttpContextAccessor httpContextAccessor,
-                                    UserManager<ApplicationUser> userManager)
+        public SchoolAdminHandler(ApplicationDbContext context,
+                                  IHttpContextAccessor httpContextAccessor,
+                                  UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _userManager = userManager;
         }
 
-        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
-                                                              ActivityAdminRequirement requirement)
+        protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, SchoolAdminRequirement requirement)
         {
             var httpContext = _httpContextAccessor.HttpContext;
             var routeValues = httpContext?.Request.RouteValues;
 
-            if (routeValues == null || !routeValues.TryGetValue("activityId", out var idValue))
+            if (routeValues == null || !routeValues.TryGetValue("schoolId", out var idValue))
                 return;
 
-            if (!int.TryParse(idValue?.ToString(), out var activityId))
+            if (!int.TryParse(idValue?.ToString(), out var schoolId))
                 return;
 
             var userId = _userManager.GetUserId(httpContext.User);
@@ -43,17 +39,18 @@ namespace WebApplication5.Handlers
                 return;
 
             var userRoles = await _context.UserRoles
-                .Where(ur => ur.UserId == userId && ur.ActivityId == activityId)
+                .Where(ur => ur.UserId == userId && ur.SchoolId == schoolId)
                 .Join(_context.Roles,
                       ur => ur.RoleId,
                       r => r.Id,
                       (ur, r) => r.Name)
                 .ToListAsync();
 
-            if (userRoles.Contains("ActivityAdmin"))
+            if (userRoles.Contains("Admin"))
             {
                 context.Succeed(requirement);
             }
         }
     }
+
 }

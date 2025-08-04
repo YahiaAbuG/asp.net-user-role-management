@@ -24,11 +24,11 @@ namespace WebApplication5.Controllers.Api
             _userManager = userManager;
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{activityId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "ActivityAdminForActivity")]
-        public async Task<IActionResult> GetActivityById(int id)
+        public async Task<IActionResult> GetActivityById(int activityId)
         {
-            var activity = await _context.Activity.FindAsync(id);
+            var activity = await _context.Activity.FindAsync(activityId);
             if (activity == null)
                 return NotFound("Activity not found.");
 
