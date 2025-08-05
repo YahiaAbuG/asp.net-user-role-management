@@ -142,8 +142,54 @@ namespace WebApplication5.Data
             }
         }
 
+        public static async Task SeedAttendanceDatesAsync(ApplicationDbContext dbContext)
+        {
+            var activities = await dbContext.Activity.ToListAsync();
+
+            var startDate = new DateTime(2025, 8, 3);
+            var endDate = new DateTime(2025, 8, 7);
+            var dateRange = Enumerable.Range(0, (endDate - startDate).Days + 1)
+                                      .Select(offset => startDate.AddDays(offset))
+                                      .ToList();
+
+            foreach (var activity in activities)
+            {
+                foreach (var date in dateRange)
+                {
+                    var exists = await dbContext.AttendanceRecords.AnyAsync(ar =>
+                        ar.ActivityId == activity.Id && ar.Date.Date == date.Date);
+
+                    if (!exists)
+                    {
+                        var activityMemberRoleId = await dbContext.Roles
+                            .Where(r => r.Name == "ActivityMember")
+                            .Select(r => r.Id)
+                            .FirstOrDefaultAsync();
+
+                        var members = await dbContext.UserRoles
+                            .Where(ur => ur.ActivityId == activity.Id && ur.RoleId == activityMemberRoleId)
+                            .Select(ur => ur.UserId)
+                            .ToListAsync();
+
+                        foreach (var memberId in members)
+                        {
+                            dbContext.AttendanceRecords.Add(new AttendanceRecord
+                            {
+                                ActivityId = activity.Id,
+                                UserId = memberId,
+                                Date = date,
+                                IsPresent = false
+                            });
+                        }
+                    }
+                }
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
-        public DbSet<WebApplication5.Models.Activity> Activity { get; set; } = default!;
+        public DbSet<Activity> Activity { get; set; } = default!;
+        public DbSet<AttendanceRecord> AttendanceRecords { get; set; } = default!;
     }
 }

@@ -105,6 +105,35 @@ namespace WebApplication5.Controllers
                 };
 
                 _context.Activity.Add(activity);
+
+                var dateRange = Enumerable.Range(0, 5) // 5 days from Aug 3 to Aug 7
+                    .Select(i => new DateTime(2025, 8, 3).AddDays(i))
+                    .ToList();
+
+                var activityMemberRoleId = await _context.Roles
+                    .Where(r => r.Name == "ActivityMember")
+                    .Select(r => r.Id)
+                    .FirstOrDefaultAsync();
+
+                var members = await _context.UserRoles
+                    .Where(ur => ur.ActivityId == activity.Id && ur.RoleId == activityMemberRoleId)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync();
+
+                foreach (var date in dateRange)
+                {
+                    foreach (var memberId in members)
+                    {
+                        _context.AttendanceRecords.Add(new AttendanceRecord
+                        {
+                            ActivityId = activity.Id,
+                            UserId = memberId,
+                            Date = date,
+                            IsPresent = false
+                        });
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
@@ -190,107 +219,107 @@ namespace WebApplication5.Controllers
         }
 
         // GET: Activities/Manage/5
-        [AuthorizeSchoolRole("Admin, Manager")]
-        public async Task<IActionResult> Manage(int id)
-        {
-            var activity = await _context.Activity.FindAsync(id);
-            if (activity == null)
-            {
-                return NotFound();
-            }
+        //[AuthorizeSchoolRole("Admin, Manager")]
+        //public async Task<IActionResult> Manage(int id)
+        //{
+        //    var activity = await _context.Activity.FindAsync(id);
+        //    if (activity == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            int currentSchoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
+        //    int currentSchoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
 
-            var activityAdminRole = await _roleManager.FindByNameAsync("ActivityAdmin");
-            var activityMemberRole = await _roleManager.FindByNameAsync("ActivityMember");
+        //    var activityAdminRole = await _roleManager.FindByNameAsync("ActivityAdmin");
+        //    var activityMemberRole = await _roleManager.FindByNameAsync("ActivityMember");
 
-            var userRoles = await _context.UserRoles
-                .Where(ur => ur.ActivityId == id)
-                .ToListAsync();
+        //    var userRoles = await _context.UserRoles
+        //        .Where(ur => ur.ActivityId == id)
+        //        .ToListAsync();
 
-            var usersInSchool = await _userManager.Users
-                .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.SchoolId == currentSchoolId))
-                .ToListAsync();
+        //    var usersInSchool = await _userManager.Users
+        //        .Where(u => _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.SchoolId == currentSchoolId))
+        //        .ToListAsync();
 
-            var viewModel = new ManageActivityUsersViewModel
-            {
-                Activity = activity,
-                Users = usersInSchool.Select(u =>
-                {
-                    var roleAssignment = userRoles.FirstOrDefault(ur => ur.UserId == u.Id);
-                    string currentRole = null;
+        //    var viewModel = new ManageActivityUsersViewModel
+        //    {
+        //        Activity = activity,
+        //        Users = usersInSchool.Select(u =>
+        //        {
+        //            var roleAssignment = userRoles.FirstOrDefault(ur => ur.UserId == u.Id);
+        //            string currentRole = null;
 
-                    if (roleAssignment != null)
-                    {
-                        var roleId = roleAssignment.RoleId;
-                        if (roleId == activityAdminRole?.Id) currentRole = "ActivityAdmin";
-                        else if (roleId == activityMemberRole?.Id) currentRole = "ActivityMember";
-                    }
+        //            if (roleAssignment != null)
+        //            {
+        //                var roleId = roleAssignment.RoleId;
+        //                if (roleId == activityAdminRole?.Id) currentRole = "ActivityAdmin";
+        //                else if (roleId == activityMemberRole?.Id) currentRole = "ActivityMember";
+        //            }
 
-                    return new ActivityUserRoleAssignment
-                    {
-                        UserId = u.Id,
-                        UserName = u.UserName,
-                        FullName = $"{u.FirstName} {u.LastName}",
-                        CurrentRole = currentRole
-                    };
-                }).ToList()
-            };
+        //            return new ActivityUserRoleAssignment
+        //            {
+        //                UserId = u.Id,
+        //                UserName = u.UserName,
+        //                FullName = $"{u.FirstName} {u.LastName}",
+        //                CurrentRole = currentRole
+        //            };
+        //        }).ToList()
+        //    };
 
-            return View(viewModel);
-        }
+        //    return View(viewModel);
+        //}
 
-        // POST: Activities/Manage/5
-        [AuthorizeSchoolRole("Admin, Manager")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Manage(int id, List<ActivityUserRoleAssignment> users)
-        {
-            var activity = await _context.Activity.FindAsync(id);
-            if (activity == null)
-            {
-                return NotFound();
-            }
+        //// POST: Activities/Manage/5
+        //[AuthorizeSchoolRole("Admin, Manager")]
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Manage(int id, List<ActivityUserRoleAssignment> users)
+        //{
+        //    var activity = await _context.Activity.FindAsync(id);
+        //    if (activity == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            var adminRole = await _roleManager.FindByNameAsync("ActivityAdmin");
-            var memberRole = await _roleManager.FindByNameAsync("ActivityMember");
+        //    var adminRole = await _roleManager.FindByNameAsync("ActivityAdmin");
+        //    var memberRole = await _roleManager.FindByNameAsync("ActivityMember");
 
-            int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
+        //    int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
 
-            foreach (var userAssignment in users)
-            {
-                var existingRole = await _context.UserRoles
-                    .FirstOrDefaultAsync(ur => ur.UserId == userAssignment.UserId && ur.ActivityId == id);
+        //    foreach (var userAssignment in users)
+        //    {
+        //        var existingRole = await _context.UserRoles
+        //            .FirstOrDefaultAsync(ur => ur.UserId == userAssignment.UserId && ur.ActivityId == id);
 
-                if (existingRole != null)
-                {
-                    // Update role or remove if set to "None"
-                    if (userAssignment.CurrentRole == "ActivityAdmin")
-                        existingRole.RoleId = adminRole.Id;
-                    else if (userAssignment.CurrentRole == "ActivityMember")
-                        existingRole.RoleId = memberRole.Id;
-                    else
-                        _context.UserRoles.Remove(existingRole);
-                }
-                else
-                {
-                    if (userAssignment.CurrentRole == "ActivityAdmin" || userAssignment.CurrentRole == "ActivityMember")
-                    {
-                        var roleId = userAssignment.CurrentRole == "ActivityAdmin" ? adminRole.Id : memberRole.Id;
-                        _context.UserRoles.Add(new ApplicationUserRole
-                        {
-                            UserId = userAssignment.UserId,
-                            ActivityId = id,
-                            SchoolId = schoolId,
-                            RoleId = roleId
-                        });
-                    }
-                }
-            }
+        //        if (existingRole != null)
+        //        {
+        //            // Update role or remove if set to "None"
+        //            if (userAssignment.CurrentRole == "ActivityAdmin")
+        //                existingRole.RoleId = adminRole.Id;
+        //            else if (userAssignment.CurrentRole == "ActivityMember")
+        //                existingRole.RoleId = memberRole.Id;
+        //            else
+        //                _context.UserRoles.Remove(existingRole);
+        //        }
+        //        else
+        //        {
+        //            if (userAssignment.CurrentRole == "ActivityAdmin" || userAssignment.CurrentRole == "ActivityMember")
+        //            {
+        //                var roleId = userAssignment.CurrentRole == "ActivityAdmin" ? adminRole.Id : memberRole.Id;
+        //                _context.UserRoles.Add(new ApplicationUserRole
+        //                {
+        //                    UserId = userAssignment.UserId,
+        //                    ActivityId = id,
+        //                    SchoolId = schoolId,
+        //                    RoleId = roleId
+        //                });
+        //            }
+        //        }
+        //    }
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
+        //    await _context.SaveChangesAsync();
+        //    return RedirectToAction(nameof(Index));
+        //}
 
     }
 }

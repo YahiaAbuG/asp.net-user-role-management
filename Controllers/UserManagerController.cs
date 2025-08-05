@@ -5,14 +5,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using WebApplication5.Models;
-using WebApplication5.Models.ViewModels;
-using WebApplication5.Attributes;
+using System.Data;
 using System.IO.Compression;
+using WebApplication5.Attributes;
+using WebApplication5.Data;
+using WebApplication5.Models;
+using WebApplication5.Models.Interfaces;
+using WebApplication5.Models.ViewModels;
 using X.PagedList;
 using X.PagedList.Extensions;
-using WebApplication5.Models.Interfaces;
-using WebApplication5.Data;
 
 namespace WebApplication5.Controllers
 {
@@ -207,12 +208,35 @@ namespace WebApplication5.Controllers
                             UserId = user.Id,
                             RoleId = role.Id,
                             SchoolId = model.Form.SelectedSchoolId,
-                            ActivityId = model.Form.SelectedRoleName is "ActivityAdmin" or "ActivityMember"
-                                         ? model.Form.SelectedActivityId
-                                         : null
+                            ActivityId = isActivityRole ? model.Form.SelectedActivityId : null
                         };
 
                         _context.UserRoles.Add(newRole);
+
+                        // If assigning ActivityMember role, also create attendance records
+                        if (model.Form.SelectedRoleName == "ActivityMember" && model.Form.SelectedActivityId.HasValue)
+                        {
+                            var attendanceDates = Enumerable.Range(0, 5)
+                                .Select(i => new DateTime(2025, 8, 3).AddDays(i))
+                                .ToList();
+
+                            foreach (var date in attendanceDates)
+                            {
+                                var alreadyExists = await _context.AttendanceRecords.AnyAsync(a =>
+                                    a.UserId == user.Id && a.ActivityId == model.Form.SelectedActivityId && a.Date.Date == date);
+
+                                if (!alreadyExists)
+                                {
+                                    _context.AttendanceRecords.Add(new AttendanceRecord
+                                    {
+                                        UserId = user.Id,
+                                        ActivityId = model.Form.SelectedActivityId.Value,
+                                        Date = date,
+                                        IsPresent = false
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -266,6 +290,18 @@ namespace WebApplication5.Controllers
 
             if (entry != null)
             {
+                // Get the actual role name from the DB to avoid relying on model.RoleName
+                var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == model.RoleId);
+
+                if (role?.Name == "ActivityMember" && model.ActivityId.HasValue)
+                {
+                    var recordsToRemove = await _context.AttendanceRecords
+                        .Where(ar => ar.UserId == model.UserId && ar.ActivityId == model.ActivityId.Value)
+                        .ToListAsync();
+
+                    _context.AttendanceRecords.RemoveRange(recordsToRemove);
+                }
+
                 _context.UserRoles.Remove(entry);
                 await _context.SaveChangesAsync();
             }

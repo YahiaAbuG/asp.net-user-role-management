@@ -120,6 +120,7 @@ using (var scope = app.Services.CreateScope())
     var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
     await ApplicationDbContext.SeedDefaultAdminUserAsync(userManager, roleManager, dbContext);
+    await ApplicationDbContext.SeedAttendanceDatesAsync(dbContext);
 }
 
 

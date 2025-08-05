@@ -1,0 +1,60 @@
+﻿@model WebApplication5.Models.ViewModels.AttendanceReportViewModel
+
+@{
+    ViewData["Title"] = "Attendance Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<br />
+<h2>Attendance Report for @Model.ActivityName</h2>
+<br />
+
+<form method="get" asp-action="Index" asp-route-activityId="@ViewBag.ActivityId" class="mb-4">
+    <div class="row">
+        <div class="col-md-4">
+            <label for="startDate">Start Date</label>
+            <input type="date" class="form-control" id="startDate" name="startDate" min="2025-08-03" max="2025-08-07" value="@ViewBag.StartDate?.ToString("yyyy-MM-dd") ?? " 2025-08-03"">
+        </div>
+        <div class="col-md-4">
+            <label for="endDate">End Date</label>
+            <input type="date" class="form-control" id="endDate" name="endDate" min="2025-08-03" max="2025-08-07" value="@ViewBag.EndDate?.ToString("yyyy-MM-dd") ?? " 2025-08-07"">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </div>
+    </div>
+</form>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Team</th>
+            @foreach (var date in Model.Dates)
+            {
+                <th>@date.ToString("MMMM dd")</th>
+            }
+            <th>Total Present</th>
+            <th>Total Days</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var member in Model.Members)
+        {
+            <tr>
+                <td>@member.Name</td>
+                @foreach (var present in member.AttendancePerDate)
+                {
+                    <td>@if (present)
+                        {
+                            <span class="text-success">Present</span>
+                        } else
+                        {
+                            <span class="text-danger">Absent</span>
+                        }
+                    </td>
+                }
+                <td>@member.DaysAttended</td>
+                <td>@member.TotalDays</td>
+            </tr>
+        }
+    </tbody>
+</table>
