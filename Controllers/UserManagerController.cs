@@ -86,7 +86,7 @@ namespace WebApplication5.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var currentUserId = currentUser?.Id;
 
-            if (await _schoolRoleService.IsUserInRoleAsync(userId, "SuperAdmin", 0) && !(await _schoolRoleService.IsUserInRoleAsync(currentUserId, "SuperAdmin", 0)))
+            if (await _schoolRoleService.IsUserSuperAdminAsync(userId) && !(await _schoolRoleService.IsUserSuperAdminAsync(currentUserId)))
                 return Forbid();
 
             if (await _schoolRoleService.IsUserInRoleAsync(currentUserId, "Manager", schoolId) && (await _schoolRoleService.IsUserInRoleAsync(userId, "Admin", schoolId)))

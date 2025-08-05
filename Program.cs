@@ -96,6 +96,7 @@ builder.Services.AddScoped<ICurrentSchoolService, CurrentSchoolService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, ActivityAdminHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, SchoolAdminHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, AttendanceAccessHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -103,6 +104,8 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new ActivityAdminRequirement()));
     options.AddPolicy("SchoolAdmin", policy =>
         policy.Requirements.Add(new SchoolAdminRequirement()));
+    options.AddPolicy("AttendanceAccess", policy =>
+        policy.Requirements.Add(new AttendanceAccessRequirement()));
 });
 
 
