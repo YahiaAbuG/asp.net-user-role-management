@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Data;
+using WebApplication5.Models;
 using WebApplication5.Models.ViewModels;
 
 namespace WebApplication5.Controllers
@@ -67,41 +68,73 @@ namespace WebApplication5.Controllers
             return View(viewModel);
         }
 
-        [HttpGet("Date/{date}")]
-        public async Task<IActionResult> ByDate(int activityId, DateTime date)
+        [HttpGet("Edit")]
+        public async Task<IActionResult> Edit(int activityId, DateTime date)
         {
-            var records = await _context.AttendanceRecords
-                .Include(a => a.User)
-                .Where(a => a.ActivityId == activityId && a.Date.Date == date.Date)
+            var activity = await _context.Activity.FindAsync(activityId);
+            if (activity == null) return NotFound();
+
+            var userIds = await _context.UserRoles
+                .Where(ur => ur.ActivityId == activityId)
+                .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .Where(x => x.Name == "ActivityMember")
+                .Select(x => x.UserId)
+                .Distinct()
                 .ToListAsync();
 
-            ViewBag.ActivityId = activityId;
-            ViewBag.Date = date;
-            return View(records);
-        }
-
-        [HttpGet("Range")]
-        public IActionResult DateRange(int activityId)
-        {
-            ViewBag.ActivityId = activityId;
-            return View();
-        }
-
-        [HttpPost("Range")]
-        public async Task<IActionResult> DateRange(int activityId, DateTime startDate, DateTime endDate)
-        {
-            var grouped = await _context.AttendanceRecords
-                .Include(a => a.User)
-                .Where(a => a.ActivityId == activityId &&
-                            a.Date.Date >= startDate.Date &&
-                            a.Date.Date <= endDate.Date)
-                .GroupBy(a => a.User)
+            var users = await _context.Users
+                .Where(u => userIds.Contains(u.Id))
                 .ToListAsync();
 
-            ViewBag.ActivityId = activityId;
-            ViewBag.StartDate = startDate;
-            ViewBag.EndDate = endDate;
-            return View("RangeResult", grouped);
+            var attendanceRecords = await _context.AttendanceRecords
+                .Where(ar => ar.ActivityId == activityId && ar.Date.Date == date.Date)
+                .ToListAsync();
+
+            var model = new EditAttendanceViewModel
+            {
+                ActivityId = activityId,
+                Date = date,
+                Members = users.Select(u => new MemberAttendanceCheckbox
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName,
+                    IsPresent = attendanceRecords.Any(ar => ar.UserId == u.Id && ar.IsPresent)
+                }).ToList()
+            };
+
+            return View(model);
+        }
+
+        [HttpPost("Edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(EditAttendanceViewModel model)
+        {
+            var existingRecords = await _context.AttendanceRecords
+                .Where(ar => ar.ActivityId == model.ActivityId && ar.Date.Date == model.Date.Date)
+                .ToListAsync();
+
+            foreach (var member in model.Members)
+            {
+                var record = existingRecords.FirstOrDefault(r => r.UserId == member.UserId);
+                if (record != null)
+                {
+                    record.IsPresent = member.IsPresent;
+                }
+                else
+                {
+                    // Create a new record if it doesn't exist
+                    _context.AttendanceRecords.Add(new AttendanceRecord
+                    {
+                        UserId = member.UserId,
+                        ActivityId = model.ActivityId,
+                        Date = model.Date,
+                        IsPresent = member.IsPresent
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Index", new { activityId = model.ActivityId });
         }
     }
 }
