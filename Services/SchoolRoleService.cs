@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using WebApplication5.Data;
 using WebApplication5.Models;
 using WebApplication5.Models.Interfaces;
@@ -50,7 +51,19 @@ namespace WebApplication5.Services
                 r.UserId == userId &&
                 r.SchoolId == schoolId &&
                 r.RoleId == role.Id);
-        }   
+        }
+
+
+        public async Task<bool> IsUserSuperAdminAsync(string userId)
+        {
+
+            var superAdmin = await _roleManager.FindByNameAsync("SuperAdmin");
+
+            return await _context.UserRoles.AnyAsync(r =>
+                    r.UserId == userId &&
+                    r.RoleId == superAdmin.Id
+                );
+        }
 
 
         public async Task AssignRolesAsync(string userId, IEnumerable<string> roleNames, int schoolId)

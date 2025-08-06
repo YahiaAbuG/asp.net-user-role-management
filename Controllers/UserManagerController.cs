@@ -77,7 +77,7 @@ namespace WebApplication5.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
             var currentUserId = currentUser?.Id;
 
-            if (await _schoolRoleService.IsUserInRoleAsync(userId, "SuperAdmin", 0) && !(await _schoolRoleService.IsUserInRoleAsync(currentUserId, "SuperAdmin", 0)))
+            if (await _schoolRoleService.IsUserSuperAdminAsync(userId) && !(await _schoolRoleService.IsUserSuperAdminAsync(currentUserId)))
                 return Forbid();
 
             if (await _schoolRoleService.IsUserInRoleAsync(currentUserId, "Manager", schoolId) && (await _schoolRoleService.IsUserInRoleAsync(userId, "Admin", schoolId)))
@@ -346,7 +346,10 @@ namespace WebApplication5.Controllers
             int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
-            var roles = await _roleManager.Roles.ToListAsync();
+            var roles = await _roleManager.Roles
+                .Where(r => r.Name != "ActivityAdmin" && r.Name != "ActivityMember")
+                .ToListAsync();
+
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
             return View();
         }
@@ -381,7 +384,10 @@ namespace WebApplication5.Controllers
                 }
             }
 
-            var roles = await _roleManager.Roles.ToListAsync();
+            var roles = await _roleManager.Roles
+                .Where(r => r.Name != "ActivityAdmin" && r.Name != "ActivityMember")
+                .ToListAsync();
+
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
             return View(model);
         }
