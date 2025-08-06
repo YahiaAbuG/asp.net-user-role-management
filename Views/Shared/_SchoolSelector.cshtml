@@ -6,9 +6,10 @@
     {
         int.TryParse(queryId, out currentSchoolId);
     }
+    var currentUrl = Context.Request.Path + Context.Request.QueryString;
 }
 
-<form method="get" asp-controller="Home" asp-action="Index" id="schoolForm" class="d-flex align-items-center ms-auto">
+<form method="get" action="@currentUrl" id="schoolForm" class="d-flex align-items-center ms-auto">
     <select name="schoolId" class="form-select form-select-sm me-2" onchange="this.form.submit()">
         @foreach (var school in Model)
         {
