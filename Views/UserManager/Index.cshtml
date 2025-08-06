@@ -12,7 +12,7 @@
     <br />
     @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
 	{
-        <a asp-action="Create" class="btn btn-primary">Create User</a>
+        <a asp-action="Create" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="btn btn-primary">Create User</a>
         <br />
         <br />
         <div class="flex-column">
@@ -47,7 +47,13 @@
                 <td>@user.FirstName @user.LastName</td>
                 <td>@user.UserName</td>
                 <td>@user.Email</td>
-                <td>@string.Join(" , ", user.Roles.Where(role => role != "ActivityAdmin" && role != "ActivityMember"))</td>
+                @if (user.Roles.Any())
+                { 
+                    <td>@string.Join(" , ", user.Roles.Where(role => role != "ActivityAdmin" && role != "ActivityMember"))</td>
+                } else
+                {
+                    <td><span class="text-muted">No roles assigned</span></td>
+                }
                 @if (User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SuperAdmin"))
                 {
                     <td>

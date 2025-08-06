@@ -53,16 +53,7 @@ namespace WebApplication5.Controllers
             int pageSize = 10;
             int pageNumber = (page ?? 1);
 
-            // Filter users who belong to the current school
-            var userIdsInSchool = await _context.UserRoles
-                //.Where(ur => ur.SchoolId == schoolId)
-                .Select(ur => ur.UserId)
-                .Distinct()
-                .ToListAsync();
-
-            var users = await _userManager.Users
-                .Where(u => userIdsInSchool.Contains(u.Id))
-                .ToListAsync();
+            var users = await _userManager.Users.ToListAsync();
 
             var userRolesViewModel = _mapper.Map<List<UserRolesViewModel>>(users);
 
