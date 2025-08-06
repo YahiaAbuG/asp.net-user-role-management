@@ -355,7 +355,10 @@ namespace WebApplication5.Controllers
             int schoolId = _currentSchoolService.GetCurrentSchoolId(HttpContext) ?? 1;
             ViewBag.CurrentSchoolId = schoolId;
 
-            var roles = await _roleManager.Roles.ToListAsync();
+            var roles = await _roleManager.Roles
+                .Where(r => r.Name != "ActivityAdmin" && r.Name != "ActivityMember")
+                .ToListAsync();
+
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
             return View();
         }
@@ -390,7 +393,10 @@ namespace WebApplication5.Controllers
                 }
             }
 
-            var roles = await _roleManager.Roles.ToListAsync();
+            var roles = await _roleManager.Roles
+                .Where(r => r.Name != "ActivityAdmin" && r.Name != "ActivityMember")
+                .ToListAsync();
+
             ViewBag.Roles = new SelectList(roles, "Name", "Name");
             return View(model);
         }
