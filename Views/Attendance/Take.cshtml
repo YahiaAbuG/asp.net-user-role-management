@@ -1,0 +1,85 @@
+﻿@model WebApplication5.Models.ViewModels.EditAttendanceViewModel
+@{
+    ViewData["Title"] = "Take Attendance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var dates = (IEnumerable<DateTime>)ViewBag.Dates ?? Enumerable.Empty<DateTime>();
+}
+
+<br />
+<h2>Take Attendance — @ViewBag.ActivityName</h2>
+<br />
+
+@if (!dates.Any())
+{
+    <div class="alert alert-info mt-3">
+        No attendance dates found for this activity yet.
+    </div>
+}
+else
+{
+    <!-- Date selector (GET) -->
+    <form method="get" asp-action="Take" asp-route-activityId="@ViewBag.ActivityId">
+        <input type="hidden" name="activityId" value="@ViewBag.ActivityId" />
+        <div class="form-group mb-2">
+            <label for="selectedDate" class="me-2">Select Date:</label>
+            <select class="form-control me-2" id="selectedDate" name="date">
+                @foreach (var date in dates)
+                {
+                    if (date.Date == Model.Date.Date)
+                    {
+                        <option value="@date.ToString("yyyy-MM-dd")" selected>
+                            @date.ToString("MMMM dd")
+                        </option>
+                    } else
+                    {
+                        <option value="@date.ToString("yyyy-MM-dd")">
+                            @date.ToString("MMMM dd")
+                        </option>
+                    }
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary mb-2">Load Date</button>
+    </form>
+
+    <br />
+
+    <!-- Attendance table (POST) -->
+    <h3>@Model.Date.Date.ToString("MMMM dd")</h3>
+    <form method="post" asp-action="Take" asp-route-activityId="@Model.ActivityId">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ActivityId" />
+        <input type="hidden" asp-for="Date" />
+
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th style="width:60%">Team</th>
+                    <th style="width:40%">Present</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Members.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            @Model.Members[i].UserName
+                            <input type="hidden" asp-for="Members[@i].UserId" />
+                            <input type="hidden" asp-for="Members[@i].UserName" />
+                        </td>
+                        <td>
+                            <input class="form-check-input" asp-for="Members[@i].IsPresent" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Save Attendance</button>
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-activityId="@ViewBag.ActivityId">Cancel</a>
+        </div>
+    </form>
+}
+<br />
+<a asp-action="Index" asp-route-activityId="@Model.ActivityId" class="btn btn-secondary">Attendance Report</a>

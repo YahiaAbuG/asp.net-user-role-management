@@ -138,5 +138,106 @@ namespace WebApplication5.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction("Index", new { activityId = model.ActivityId });
         }
+
+        [HttpGet("Take", Name = "Attendance_Take")]
+        public async Task<IActionResult> Take(int activityId, DateTime? date)
+        {
+            var activity = await _context.Activity.FindAsync(activityId);
+            if (activity == null) return NotFound();
+
+            // All available dates for this activity (for the dropdown)
+            var allDates = await _context.AttendanceRecords
+                .Where(a => a.ActivityId == activityId)
+                .Select(a => a.Date.Date)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToListAsync();
+
+            if (!allDates.Any())
+            {
+                // Nothing to take yet
+                ViewBag.ActivityId = activityId;
+                ViewBag.ActivityName = activity.Name;
+                ViewBag.Dates = allDates;
+                return View(new EditAttendanceViewModel
+                {
+                    ActivityId = activityId,
+                    Date = DateTime.Today,
+                    Members = new List<MemberAttendanceCheckbox>()
+                });
+            }
+
+            // Default to the first date if none supplied
+            var selectedDate = date?.Date ?? allDates.First();
+
+            // Users who are ActivityMembers for this activity
+            var memberUserIds = await _context.UserRoles
+                .Where(ur => ur.ActivityId == activityId)
+                .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .Where(x => x.Name == "ActivityMember")
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            var users = await _context.Users
+                .Where(u => memberUserIds.Contains(u.Id))
+                .OrderBy(u => u.UserName)
+                .ToListAsync();
+
+            var recordsForDate = await _context.AttendanceRecords
+                .Where(ar => ar.ActivityId == activityId && ar.Date.Date == selectedDate)
+                .ToListAsync();
+
+            var model = new EditAttendanceViewModel
+            {
+                ActivityId = activityId,
+                Date = selectedDate,
+                Members = users.Select(u => new MemberAttendanceCheckbox
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName,
+                    IsPresent = recordsForDate.Any(ar => ar.UserId == u.Id && ar.IsPresent)
+                }).ToList()
+            };
+
+            ViewBag.ActivityId = activityId;
+            ViewBag.ActivityName = activity.Name;
+            ViewBag.Dates = allDates;
+            return View(model);
+        }
+
+        // POST: Activities/{activityId}/Attendance/Take
+        [HttpPost("Take")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Take(EditAttendanceViewModel model)
+        {
+            // Load existing records for this date/activity
+            var existing = await _context.AttendanceRecords
+                .Where(ar => ar.ActivityId == model.ActivityId && ar.Date.Date == model.Date.Date)
+                .ToListAsync();
+
+            // Update or create per member
+            foreach (var m in model.Members)
+            {
+                var rec = existing.FirstOrDefault(r => r.UserId == m.UserId);
+                if (rec != null)
+                {
+                    rec.IsPresent = m.IsPresent;
+                }
+                else
+                {
+                    _context.AttendanceRecords.Add(new AttendanceRecord
+                    {
+                        UserId = m.UserId,
+                        ActivityId = model.ActivityId,
+                        Date = model.Date.Date,
+                        IsPresent = m.IsPresent
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Take", new { activityId = model.ActivityId, date = model.Date.ToString("yyyy-MM-dd") });
+        }
     }
 }
