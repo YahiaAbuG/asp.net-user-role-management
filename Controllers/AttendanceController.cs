@@ -2,8 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication5.Data;
-using WebApplication5.Models;
 using WebApplication5.Models.ViewModels;
+using WebApplication5.Models;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace WebApplication5.Controllers
 {
@@ -18,48 +22,62 @@ namespace WebApplication5.Controllers
             _context = context;
         }
 
+        // REPORT
         [HttpGet("")]
         public async Task<IActionResult> Index(int activityId, DateTime? startDate, DateTime? endDate)
         {
             var activity = await _context.Activity.FindAsync(activityId);
             if (activity == null) return NotFound();
 
-            var allDates = await _context.AttendanceRecords
-                .Where(a => a.ActivityId == activityId)
-                .Select(a => a.Date.Date)
-                .Distinct()
-                .OrderBy(d => d)
+            // sessions (filterable)
+            var sessionsQuery = _context.AttendanceSessions
+                .Where(s => s.ActivityId == activityId);
+
+            if (startDate.HasValue)
+                sessionsQuery = sessionsQuery.Where(s => s.Date.Date >= startDate.Value.Date);
+            if (endDate.HasValue)
+                sessionsQuery = sessionsQuery.Where(s => s.Date.Date <= endDate.Value.Date);
+
+            var sessions = await sessionsQuery
+                .OrderBy(s => s.Date)
                 .ToListAsync();
 
-            // Default range
-            var filteredDates = allDates
-                .Where(d => (!startDate.HasValue || d >= startDate.Value.Date) &&
-                            (!endDate.HasValue || d <= endDate.Value.Date))
-                .ToList();
+            var dates = sessions.Select(s => s.Date.Date).ToList();
+            var sessionIds = sessions.Select(s => s.Id).ToList();
 
-            var members = await _context.UserRoles
-                .Where(ur => ur.ActivityId == activityId)
-                .Join(_context.Users,
-                    ur => ur.UserId,
-                    u => u.Id,
-                    (ur, u) => new { ur.RoleId, ur.UserId, u.UserName })
-                .Where(x => _context.Roles.Any(r => r.Id == x.RoleId && r.Name == "ActivityMember"))
-                .Select(x => new { x.UserId, x.UserName })
-                .ToListAsync();
-
+            // all attendance records for these sessions
             var records = await _context.AttendanceRecords
-                .Where(ar => ar.ActivityId == activityId)
+                .Where(r => sessionIds.Contains(r.AttendanceSessionId))
+                .ToListAsync();
+
+            // members for this activity
+            var memberUserIds = await _context.UserRoles
+                .Where(ur => ur.ActivityId == activityId)
+                .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .Where(x => x.Name == "ActivityMember")
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            var members = await _context.Users
+                .Where(u => memberUserIds.Contains(u.Id))
+                .OrderBy(u => u.UserName)
+                .Select(u => new { u.Id, u.UserName })
                 .ToListAsync();
 
             var viewModel = new AttendanceReportViewModel
             {
                 ActivityName = activity.Name,
-                Dates = filteredDates,
-                Members = members.Select(member => new MemberAttendanceRow
+                Dates = dates,
+                Members = members.Select(m => new MemberAttendanceRow
                 {
-                    Name = member.UserName,
-                    AttendancePerDate = filteredDates.Select(date =>
-                        records.Any(r => r.UserId == member.UserId && r.Date.Date == date.Date && r.IsPresent)).ToList()
+                    Name = m.UserName,
+                    AttendancePerDate = dates.Select(d =>
+                    {
+                        // find the session for that date (dates list & sessions are aligned)
+                        var sessionId = sessions.First(s => s.Date.Date == d).Id;
+                        return records.Any(r => r.AttendanceSessionId == sessionId && r.UserId == m.Id);
+                    }).ToList()
                 }).ToList()
             };
 
@@ -70,38 +88,17 @@ namespace WebApplication5.Controllers
             return View(viewModel);
         }
 
+        // TAKE - GET
         [HttpGet("Take", Name = "Attendance_Take")]
         public async Task<IActionResult> Take(int activityId, DateTime? date)
         {
             var activity = await _context.Activity.FindAsync(activityId);
             if (activity == null) return NotFound();
+            if (date == null) return BadRequest();
 
-            // All available dates for this activity (for the dropdown)
-            var allDates = await _context.AttendanceRecords
-                .Where(a => a.ActivityId == activityId)
-                .Select(a => a.Date.Date)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToListAsync();
+            var selectedDate = date.Value.Date;
 
-            if (!allDates.Any())
-            {
-                // Nothing to take yet
-                ViewBag.ActivityId = activityId;
-                ViewBag.ActivityName = activity.Name;
-                ViewBag.Dates = allDates;
-                return View(new EditAttendanceViewModel
-                {
-                    ActivityId = activityId,
-                    Date = DateTime.Today,
-                    Members = new List<MemberAttendanceCheckbox>()
-                });
-            }
-
-            // Default to the first date if none supplied
-            var selectedDate = date?.Date ?? allDates.First();
-
-            // Users who are ActivityMembers for this activity
+            // members
             var memberUserIds = await _context.UserRoles
                 .Where(ur => ur.ActivityId == activityId)
                 .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
@@ -115,8 +112,21 @@ namespace WebApplication5.Controllers
                 .OrderBy(u => u.UserName)
                 .ToListAsync();
 
-            var recordsForDate = await _context.AttendanceRecords
-                .Where(ar => ar.ActivityId == activityId && ar.Date.Date == selectedDate)
+            // session for that day
+            var session = await _context.AttendanceSessions
+                .FirstOrDefaultAsync(s => s.ActivityId == activityId && s.Date.Date == selectedDate);
+
+            if (session == null)
+            {
+                // optional: create it so page always works
+                session = new AttendanceSession { ActivityId = activityId, Date = selectedDate };
+                _context.AttendanceSessions.Add(session);
+                await _context.SaveChangesAsync();
+            }
+
+            var presentRecords = await _context.AttendanceRecords
+                .Where(r => r.AttendanceSessionId == session.Id)
+                .Select(r => r.UserId)
                 .ToListAsync();
 
             var model = new EditAttendanceViewModel
@@ -127,48 +137,62 @@ namespace WebApplication5.Controllers
                 {
                     UserId = u.Id,
                     UserName = u.UserName,
-                    IsPresent = recordsForDate.Any(ar => ar.UserId == u.Id && ar.IsPresent)
+                    IsPresent = presentRecords.Contains(u.Id)
                 }).ToList()
             };
 
             ViewBag.ActivityId = activityId;
             ViewBag.ActivityName = activity.Name;
-            ViewBag.Dates = allDates;
             return View(model);
         }
 
-        // POST: Activities/{activityId}/Attendance/Take
+        // TAKE - POST
         [HttpPost("Take")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Take(EditAttendanceViewModel model)
         {
-            // Load existing records for this date/activity
+            var selectedDate = model.Date.Date;
+
+            var session = await _context.AttendanceSessions
+                .FirstOrDefaultAsync(s => s.ActivityId == model.ActivityId && s.Date.Date == selectedDate);
+
+            if (session == null) return BadRequest(ModelState);
+
             var existing = await _context.AttendanceRecords
-                .Where(ar => ar.ActivityId == model.ActivityId && ar.Date.Date == model.Date.Date)
+                .Where(r => r.AttendanceSessionId == session.Id)
                 .ToListAsync();
 
-            // Update or create per member
-            foreach (var m in model.Members)
+            var existingByUser = existing.ToDictionary(r => r.UserId, r => r);
+
+            // presence by existence
+            foreach (var m in model.Members ?? Enumerable.Empty<MemberAttendanceCheckbox>())
             {
-                var rec = existing.FirstOrDefault(r => r.UserId == m.UserId);
-                if (rec != null)
+                var hasRecord = existingByUser.TryGetValue(m.UserId, out var rec);
+
+                if (m.IsPresent)
                 {
-                    rec.IsPresent = m.IsPresent;
+                    if (!hasRecord)
+                    {
+                        _context.AttendanceRecords.Add(new AttendanceRecord
+                        {
+                            AttendanceSessionId = session.Id,
+                            UserId = m.UserId
+                        });
+                    }
                 }
                 else
                 {
-                    _context.AttendanceRecords.Add(new AttendanceRecord
+                    if (hasRecord)
                     {
-                        UserId = m.UserId,
-                        ActivityId = model.ActivityId,
-                        Date = model.Date.Date,
-                        IsPresent = m.IsPresent
-                    });
+                        _context.AttendanceRecords.Remove(rec);
+                    }
                 }
             }
 
             await _context.SaveChangesAsync();
-            return RedirectToAction("Take", new { activityId = model.ActivityId, date = model.Date.ToString("yyyy-MM-dd") });
+
+            // stay on same date
+            return RedirectToAction("Take", new { activityId = model.ActivityId, date = selectedDate.ToString("yyyy-MM-dd") });
         }
     }
 }

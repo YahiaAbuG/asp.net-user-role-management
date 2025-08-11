@@ -106,34 +106,6 @@ namespace WebApplication5.Controllers
 
                 _context.Activity.Add(activity);
 
-                var dateRange = Enumerable.Range(0, 5) // 5 days from Aug 3 to Aug 7
-                    .Select(i => new DateTime(2025, 8, 3).AddDays(i))
-                    .ToList();
-
-                var activityMemberRoleId = await _context.Roles
-                    .Where(r => r.Name == "ActivityMember")
-                    .Select(r => r.Id)
-                    .FirstOrDefaultAsync();
-
-                var members = await _context.UserRoles
-                    .Where(ur => ur.ActivityId == activity.Id && ur.RoleId == activityMemberRoleId)
-                    .Select(ur => ur.UserId)
-                    .ToListAsync();
-
-                foreach (var date in dateRange)
-                {
-                    foreach (var memberId in members)
-                    {
-                        _context.AttendanceRecords.Add(new AttendanceRecord
-                        {
-                            ActivityId = activity.Id,
-                            UserId = memberId,
-                            Date = date,
-                            IsPresent = false
-                        });
-                    }
-                }
-
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }

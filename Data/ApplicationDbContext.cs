@@ -55,6 +55,36 @@ namespace WebApplication5.Data
                 new School { Id = 2, Name = "School 2" },
                 new School { Id = 3, Name = "School 3" }
             );
+
+            builder.Entity<AttendanceSession>(b =>
+            {
+                b.HasKey(s => s.Id);
+
+                b.HasOne(s => s.Activity)
+                 .WithMany()                 // or .WithMany(a => a.AttendanceSessions) if you add a nav on Activity
+                 .HasForeignKey(s => s.ActivityId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasIndex(s => new { s.ActivityId, s.Date }).IsUnique(); // one session per activity per date
+            });
+
+            builder.Entity<AttendanceRecord>(b =>
+            {
+                b.HasKey(r => r.Id);
+
+                b.HasOne(r => r.AttendanceSession)
+                 .WithMany(s => s.Records)
+                 .HasForeignKey(r => r.AttendanceSessionId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(r => r.User)
+                 .WithMany() // or a collection on user if you want
+                 .HasForeignKey(r => r.UserId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                // One record per user per session
+                b.HasIndex(r => new { r.AttendanceSessionId, r.UserId }).IsUnique();
+            });
         }
 
         public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
@@ -142,54 +172,9 @@ namespace WebApplication5.Data
             }
         }
 
-        public static async Task SeedAttendanceDatesAsync(ApplicationDbContext dbContext)
-        {
-            var activities = await dbContext.Activity.ToListAsync();
-
-            var startDate = new DateTime(2025, 8, 3);
-            var endDate = new DateTime(2025, 8, 7);
-            var dateRange = Enumerable.Range(0, (endDate - startDate).Days + 1)
-                                      .Select(offset => startDate.AddDays(offset))
-                                      .ToList();
-
-            foreach (var activity in activities)
-            {
-                foreach (var date in dateRange)
-                {
-                    var exists = await dbContext.AttendanceRecords.AnyAsync(ar =>
-                        ar.ActivityId == activity.Id && ar.Date.Date == date.Date);
-
-                    if (!exists)
-                    {
-                        var activityMemberRoleId = await dbContext.Roles
-                            .Where(r => r.Name == "ActivityMember")
-                            .Select(r => r.Id)
-                            .FirstOrDefaultAsync();
-
-                        var members = await dbContext.UserRoles
-                            .Where(ur => ur.ActivityId == activity.Id && ur.RoleId == activityMemberRoleId)
-                            .Select(ur => ur.UserId)
-                            .ToListAsync();
-
-                        foreach (var memberId in members)
-                        {
-                            dbContext.AttendanceRecords.Add(new AttendanceRecord
-                            {
-                                ActivityId = activity.Id,
-                                UserId = memberId,
-                                Date = date,
-                                IsPresent = false
-                            });
-                        }
-                    }
-                }
-            }
-
-            await dbContext.SaveChangesAsync();
-        }
-
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Activity> Activity { get; set; } = default!;
+        public DbSet<AttendanceSession> AttendanceSessions { get; set; }
         public DbSet<AttendanceRecord> AttendanceRecords { get; set; } = default!;
     }
 }
