@@ -1,0 +1,67 @@
+﻿@model IEnumerable<WebApplication5.Models.AttendanceSession>
+@{
+    ViewData["Title"] = "Sessions";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var activityId = (int)ViewBag.ActivityId;
+    var activityName = ViewBag.ActivityName as string;
+}
+
+<h2>Attendance Sessions — @activityName</h2>
+
+<div class="mb-3">
+    <form asp-action="CreateSession" asp-route-activityId="@activityId" method="post" class="row g-2">
+        <div class="col-sm-4">
+            <input type="date" name="date" class="form-control" required />
+        </div>
+        <div class="col-sm-3">
+            <button type="submit" class="btn btn-primary">Add Session</button>
+        </div>
+        <div class="col-sm-5 text-end">
+            <a asp-action="Index" asp-route-activityId="@activityId" class="btn btn-outline-secondary">
+                View Attendance Report
+            </a>
+        </div>
+    </form>
+</div>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th style="width:40%">Date</th>
+            <th style="width:60%">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Any())
+        {
+            <tr><td colspan="2">No sessions yet. Add one above.</td></tr>
+        }
+        else
+        {
+            foreach (var s in Model)
+            {
+                <tr>
+                    <td>@s.Date.ToString("MMMM dd, yyyy")</td>
+                    <td>
+                        <a class="btn btn-sm btn-primary"
+                           asp-action="Take"
+                           asp-route-activityId="@activityId"
+                           asp-route-sessionId="@s.Id">Take Attendance</a>
+
+                        <form asp-action="DeleteSession"
+                              asp-route-activityId="@activityId"
+                              asp-route-sessionId="@s.Id"
+                              method="post"
+                              class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Delete this session and its attendance?')">
+                                Delete
+                            </button>
+                            @Html.AntiForgeryToken()
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>

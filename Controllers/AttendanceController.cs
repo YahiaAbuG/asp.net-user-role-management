@@ -88,17 +88,70 @@ namespace WebApplication5.Controllers
             return View(viewModel);
         }
 
-        // TAKE - GET
-        [HttpGet("Take", Name = "Attendance_Take")]
-        public async Task<IActionResult> Take(int activityId, DateTime? date)
+        [HttpGet("Sessions")]
+        public async Task<IActionResult> Sessions(int activityId)
         {
             var activity = await _context.Activity.FindAsync(activityId);
             if (activity == null) return NotFound();
-            if (date == null) return BadRequest();
 
-            var selectedDate = date.Value.Date;
+            var sessions = await _context.AttendanceSessions
+                .Where(s => s.ActivityId == activityId)
+                .OrderByDescending(s => s.Date)
+                .ToListAsync();
 
-            // members
+            ViewBag.ActivityId = activityId;
+            ViewBag.ActivityName = activity.Name;
+            return View(sessions);
+        }
+
+        // CREATE SESSION (inline form on Sessions page)
+        [HttpPost("Sessions/Create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateSession(int activityId, DateTime date)
+        {
+            // normalize to date-only
+            var day = date.Date;
+
+            var exists = await _context.AttendanceSessions
+                .AnyAsync(s => s.ActivityId == activityId && s.Date.Date == day);
+
+            if (!exists)
+            {
+                _context.AttendanceSessions.Add(new AttendanceSession
+                {
+                    ActivityId = activityId,
+                    Date = day
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Sessions), new { activityId });
+        }
+
+        // DELETE SESSION (button in Sessions table)
+        [HttpPost("Sessions/{sessionId}/Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteSession(int activityId, int sessionId)
+        {
+            var session = await _context.AttendanceSessions
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.ActivityId == activityId);
+            if (session == null) return NotFound();
+
+            _context.AttendanceSessions.Remove(session); // cascades to AttendanceRecords
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Sessions), new { activityId });
+        }
+
+        // TAKE ATTENDANCE (now by sessionId)
+        [HttpGet("Sessions/{sessionId}/Take")]
+        public async Task<IActionResult> Take(int activityId, int sessionId)
+        {
+            var session = await _context.AttendanceSessions
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.ActivityId == activityId);
+            if (session == null) return NotFound();
+
+            // members of this activity
             var memberUserIds = await _context.UserRoles
                 .Where(ur => ur.ActivityId == activityId)
                 .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
@@ -112,18 +165,6 @@ namespace WebApplication5.Controllers
                 .OrderBy(u => u.UserName)
                 .ToListAsync();
 
-            // session for that day
-            var session = await _context.AttendanceSessions
-                .FirstOrDefaultAsync(s => s.ActivityId == activityId && s.Date.Date == selectedDate);
-
-            if (session == null)
-            {
-                // optional: create it so page always works
-                session = new AttendanceSession { ActivityId = activityId, Date = selectedDate };
-                _context.AttendanceSessions.Add(session);
-                await _context.SaveChangesAsync();
-            }
-
             var presentRecords = await _context.AttendanceRecords
                 .Where(r => r.AttendanceSessionId == session.Id)
                 .Select(r => r.UserId)
@@ -132,7 +173,8 @@ namespace WebApplication5.Controllers
             var model = new EditAttendanceViewModel
             {
                 ActivityId = activityId,
-                Date = selectedDate,
+                AttendanceSessionId = session.Id,
+                Date = session.Date,
                 Members = users.Select(u => new MemberAttendanceCheckbox
                 {
                     UserId = u.Id,
@@ -142,57 +184,49 @@ namespace WebApplication5.Controllers
             };
 
             ViewBag.ActivityId = activityId;
-            ViewBag.ActivityName = activity.Name;
+            ViewBag.ActivityName = (await _context.Activity.FindAsync(activityId))?.Name;
+            ViewBag.SessionDate = session.Date;
+
             return View(model);
         }
 
-        // TAKE - POST
-        [HttpPost("Take")]
+        [HttpPost("Sessions/{sessionId}/Take")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Take(EditAttendanceViewModel model)
         {
-            var selectedDate = model.Date.Date;
-
             var session = await _context.AttendanceSessions
-                .FirstOrDefaultAsync(s => s.ActivityId == model.ActivityId && s.Date.Date == selectedDate);
+                .FirstOrDefaultAsync(s => s.Id == model.AttendanceSessionId && s.ActivityId == model.ActivityId);
+            if (session == null) return NotFound();
 
-            if (session == null) return BadRequest(ModelState);
-
+            // existing present users
             var existing = await _context.AttendanceRecords
                 .Where(r => r.AttendanceSessionId == session.Id)
                 .ToListAsync();
 
+            // make a fast lookup
             var existingByUser = existing.ToDictionary(r => r.UserId, r => r);
 
-            // presence by existence
-            foreach (var m in model.Members ?? Enumerable.Empty<MemberAttendanceCheckbox>())
+            // Add any newly-present users
+            foreach (var m in model.Members.Where(m => m.IsPresent))
             {
-                var hasRecord = existingByUser.TryGetValue(m.UserId, out var rec);
-
-                if (m.IsPresent)
+                if (!existingByUser.ContainsKey(m.UserId))
                 {
-                    if (!hasRecord)
+                    _context.AttendanceRecords.Add(new AttendanceRecord
                     {
-                        _context.AttendanceRecords.Add(new AttendanceRecord
-                        {
-                            AttendanceSessionId = session.Id,
-                            UserId = m.UserId
-                        });
-                    }
-                }
-                else
-                {
-                    if (hasRecord)
-                    {
-                        _context.AttendanceRecords.Remove(rec);
-                    }
+                        AttendanceSessionId = session.Id,
+                        UserId = m.UserId
+                    });
                 }
             }
 
+            // Remove users marked absent (i.e., present before, now unchecked)
+            var toRemove = existing.Where(r => !model.Members.Any(m => m.UserId == r.UserId && m.IsPresent)).ToList();
+            if (toRemove.Count > 0)
+                _context.AttendanceRecords.RemoveRange(toRemove);
+
             await _context.SaveChangesAsync();
 
-            // stay on same date
-            return RedirectToAction("Take", new { activityId = model.ActivityId, date = selectedDate.ToString("yyyy-MM-dd") });
+            return RedirectToAction(nameof(Sessions), new { activityId = model.ActivityId });
         }
     }
 }

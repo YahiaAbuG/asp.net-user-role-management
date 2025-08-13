@@ -35,7 +35,7 @@
                     <td>@string.Join(", ", activity.Members)</td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@activity.Id" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="btn btn-primary">Edit</a>
-                        <a href="Activities/@activity.Id/Attendance/Take" class="btn btn-primary">Take Attendance</a>
+                        <a asp-controller="Attendance" asp-action="Sessions" asp-route-activityId="@activity.Id" class="btn btn-primary">Manage Sessions</a>
                         <a asp-controller="Attendance" asp-action="Index" asp-route-activityId="@activity.Id" class="btn btn-primary">Attendance Report</a>
                         <a asp-action="Delete" asp-route-id="@activity.Id" asp-route-schoolId="@ViewBag.CurrentSchoolId" class="btn btn-danger">Delete</a>
                     </td>

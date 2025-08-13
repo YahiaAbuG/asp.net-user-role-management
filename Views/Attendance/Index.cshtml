@@ -12,11 +12,11 @@
     <div class="row">
         <div class="col-md-4">
             <label for="startDate">Start Date</label>
-            <input type="date" class="form-control" id="startDate" name="startDate" min="2025-08-03" max="2025-08-07" value="@ViewBag.StartDate?.ToString("yyyy-MM-dd") ?? " 2025-08-03"">
+            <input type="date" class="form-control" id="startDate" name="startDate" value="@ViewBag.StartDate?.ToString("yyyy-MM-dd") ?? " 2025-08-03"">
         </div>
         <div class="col-md-4">
             <label for="endDate">End Date</label>
-            <input type="date" class="form-control" id="endDate" name="endDate" min="2025-08-03" max="2025-08-07" value="@ViewBag.EndDate?.ToString("yyyy-MM-dd") ?? " 2025-08-07"">
+            <input type="date" class="form-control" id="endDate" name="endDate" value="@ViewBag.EndDate?.ToString("yyyy-MM-dd") ?? " 2025-08-07"">
         </div>
         <div class="col-md-4 d-flex align-items-end">
             <button type="submit" class="btn btn-primary">Filter</button>
@@ -59,29 +59,7 @@
     </tbody>
 </table>
 
-<a href="Attendance/Take" class="btn btn-primary">Take Attendance</a>
+<a asp-action="Sessions" asp-route-activityId="@ViewBag.ActivityId" class="btn btn-primary">Manage Sessions</a>
 <br />
 <br />
 <a asp-controller="Activities" asp-action="Index" class="btn btn-secondary">Back to Activity List</a>
-
-@if(Model.Members.Any()) 
-{ 
-    <hr /> 
-    <h4>Edit Attendance for a Specific Date</h4> 
-    <form action="/Activities/@ViewBag.ActivityId/Attendance/Take" method="get"> 
-        <input type="hidden" name="activityId" value="@ViewBag.ActivityId" /> 
-        <div class="form-group mb-2"> 
-            <label for="selectedDate" class="me-2">Select Date:</label> 
-            <select class="form-control me-2" id="selectedDate" name="date"> 
-                @foreach (var date in Model.Dates) 
-                { 
-                    <option value="@date.ToString("yyyy-MM-dd")"> 
-                        @date.ToString("MMMM dd") 
-                    </option> 
-                } 
-            </select> 
-        </div> 
-        <button type="submit" class="btn btn-primary mb-2">Take Attendance</button> 
-    </form> 
-} 
-
