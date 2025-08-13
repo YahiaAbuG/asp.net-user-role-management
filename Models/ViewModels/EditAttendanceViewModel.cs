@@ -3,8 +3,9 @@
     public class EditAttendanceViewModel
     {
         public int ActivityId { get; set; }
+        public int AttendanceSessionId { get; set; } // NEW
         public DateTime Date { get; set; }
-        public List<MemberAttendanceCheckbox> Members { get; set; }
+        public List<MemberAttendanceCheckbox> Members { get; set; } = new();
     }
 
     public class MemberAttendanceCheckbox

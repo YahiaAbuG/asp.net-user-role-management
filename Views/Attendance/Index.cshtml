@@ -64,24 +64,24 @@
 <br />
 <a asp-controller="Activities" asp-action="Index" class="btn btn-secondary">Back to Activity List</a>
 
-@* @if(Model.Members.Any()) *@
-@* { *@
-@*     <hr /> *@
-@*     <h4>Edit Attendance for a Specific Date</h4> *@
-@*     <form action="/Activities/@ViewBag.ActivityId/Attendance/Edit" method="get"> *@
-@*         <input type="hidden" name="activityId" value="@ViewBag.ActivityId" /> *@
-@*         <div class="form-group mb-2"> *@
-@*             <label for="selectedDate" class="me-2">Select Date:</label> *@
-@*             <select class="form-control me-2" id="selectedDate" name="date"> *@
-@*                 @foreach (var date in Model.Dates) *@
-@*                 { *@
-@*                     <option value="@date.ToString("yyyy-MM-dd")"> *@
-@*                         @date.ToString("MMMM dd") *@
-@*                     </option> *@
-@*                 } *@
-@*             </select> *@
-@*         </div> *@
-@*         <button type="submit" class="btn btn-primary mb-2">Edit Attendance</button> *@
-@*     </form> *@
-@* } *@
+@if(Model.Members.Any()) 
+{ 
+    <hr /> 
+    <h4>Edit Attendance for a Specific Date</h4> 
+    <form action="/Activities/@ViewBag.ActivityId/Attendance/Take" method="get"> 
+        <input type="hidden" name="activityId" value="@ViewBag.ActivityId" /> 
+        <div class="form-group mb-2"> 
+            <label for="selectedDate" class="me-2">Select Date:</label> 
+            <select class="form-control me-2" id="selectedDate" name="date"> 
+                @foreach (var date in Model.Dates) 
+                { 
+                    <option value="@date.ToString("yyyy-MM-dd")"> 
+                        @date.ToString("MMMM dd") 
+                    </option> 
+                } 
+            </select> 
+        </div> 
+        <button type="submit" class="btn btn-primary mb-2">Take Attendance</button> 
+    </form> 
+} 
 
