@@ -65,6 +65,9 @@ namespace WebApplication5.Data
                  .HasForeignKey(s => s.ActivityId)
                  .OnDelete(DeleteBehavior.Cascade);
 
+                b.Property(s=> s.IsOpen)
+                    .HasDefaultValue(true); // Default to open
+
                 b.HasIndex(s => new { s.ActivityId, s.Date }).IsUnique(); // one session per activity per date
             });
 

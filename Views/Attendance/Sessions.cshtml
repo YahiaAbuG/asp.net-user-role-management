@@ -27,41 +27,124 @@
 <table class="table table-striped align-middle">
     <thead>
         <tr>
-            <th style="width:40%">Date</th>
-            <th style="width:60%">Actions</th>
+            <th style="width:35%">Date</th>
+            <th style="width:25%">Editable</th>
+            <th style="width:40%">Actions</th>
         </tr>
     </thead>
     <tbody>
-        @if (!Model.Any())
+        @foreach (var s in Model)
         {
-            <tr><td colspan="2">No sessions yet. Add one above.</td></tr>
-        }
-        else
-        {
-            foreach (var s in Model)
-            {
-                <tr>
-                    <td>@s.Date.ToString("MMMM dd, yyyy")</td>
-                    <td>
-                        <a class="btn btn-sm btn-primary"
-                           asp-action="Take"
-                           asp-route-activityId="@activityId"
-                           asp-route-sessionId="@s.Id">Take Attendance</a>
+            <tr>
+                <td>@s.Date.ToString("MMMM dd, yyyy")</td>
+                <td>
+                    <form asp-action="Toggle"
+                          asp-route-activityId="@activityId"
+                          asp-route-sessionId="@s.Id"
+                          method="post"
+                          class="d-inline">
+                        @Html.AntiForgeryToken()
 
-                        <form asp-action="DeleteSession"
-                              asp-route-activityId="@activityId"
-                              asp-route-sessionId="@s.Id"
-                              method="post"
-                              class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-danger"
-                                    onclick="return confirm('Delete this session and its attendance?')">
-                                Delete
-                            </button>
-                            @Html.AntiForgeryToken()
-                        </form>
-                    </td>
-                </tr>
-            }
+                        <label class="switch align-middle mb-0">
+                            <input type="checkbox"
+                                   name="isOpen"
+                                   value="true"
+                            @(s.IsOpen ? "checked" : "")
+                                   onchange="this.form.submit();" />
+                            <span class="slider"></span>
+                        </label>
+                        <input type="hidden" name="isOpen" value="false" />
+
+                        <span class="ms-2 small">
+                            @(s.IsOpen ? "Open for editing" : "Closed")
+                        </span>
+                    </form>
+                </td>
+                <td>
+                    @if (!s.IsOpen)
+                    {
+                        <a asp-action="Take"
+                           asp-route-activityId="@activityId"
+                           asp-route-sessionId="@s.Id"
+                           class="btn btn-primary me-2 disabled"
+                           aria-disabled="true"
+                           tabindex="-1">
+                            Take Attendance
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-action="Take"
+                           asp-route-activityId="@activityId"
+                           asp-route-sessionId="@s.Id"
+                           class="btn btn-primary me-2">
+                            Take Attendance
+                        </a>
+                    }
+
+                    <form asp-action="DeleteSession"
+                          asp-route-activityId="@activityId"
+                          asp-route-sessionId="@s.Id"
+                          method="post"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete this session? All records for this date will be removed.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">Delete Session</button>
+                    </form>
+                </td>
+
+            </tr>
         }
     </tbody>
 </table>
+
+<style>
+    /* iOS-style slider toggle */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 52px;
+        height: 28px;
+        vertical-align: middle;
+    }
+
+        .switch input {
+            display: none;
+        }
+
+        .switch .slider {
+            position: absolute;
+            inset: 0;
+            background: #d0d5dc;
+            border-radius: 34px;
+            transition: background .2s ease;
+        }
+
+            .switch .slider:before {
+                content: "";
+                position: absolute;
+                left: 3px;
+                top: 3px;
+                width: 22px;
+                height: 22px;
+                background: #fff;
+                border-radius: 50%;
+                box-shadow: 0 1px 2px rgba(0,0,0,.2);
+                transition: transform .2s ease;
+            }
+
+        .switch input:checked + .slider {
+            background: #0d6efd; /* matches Bootstrap primary */
+        }
+
+            .switch input:checked + .slider:before {
+                transform: translateX(24px);
+            }
+
+    /* Make disabled <a> actually unclickable */
+    a.disabled {
+        pointer-events: none;
+        opacity: .65;
+    }
+</style>
+

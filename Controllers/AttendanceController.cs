@@ -104,6 +104,21 @@ namespace WebApplication5.Controllers
             return View(sessions);
         }
 
+        // POST: Activities/{activityId}/Attendance/Toggle/{sessionId}
+        [HttpPost("Toggle/{sessionId}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Toggle(int activityId, int sessionId, bool isOpen)
+        {
+            var session = await _context.AttendanceSessions
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.ActivityId == activityId);
+            if (session == null) return NotFound();
+
+            session.IsOpen = isOpen;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Sessions", new { activityId });
+        }
+
         // CREATE SESSION (inline form on Sessions page)
         [HttpPost("Sessions/Create")]
         [ValidateAntiForgeryToken]
@@ -151,6 +166,8 @@ namespace WebApplication5.Controllers
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.ActivityId == activityId);
             if (session == null) return NotFound();
 
+            if (!session.IsOpen) return Forbid();
+
             // members of this activity
             var memberUserIds = await _context.UserRoles
                 .Where(ur => ur.ActivityId == activityId)
@@ -197,6 +214,8 @@ namespace WebApplication5.Controllers
             var session = await _context.AttendanceSessions
                 .FirstOrDefaultAsync(s => s.Id == model.AttendanceSessionId && s.ActivityId == model.ActivityId);
             if (session == null) return NotFound();
+
+            if (!session.IsOpen) return Forbid(); // session must be open to take attendance
 
             // existing present users
             var existing = await _context.AttendanceRecords
