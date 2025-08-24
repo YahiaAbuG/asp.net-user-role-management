@@ -12,6 +12,7 @@
 <br />
 
 <form method="get" asp-action="Index" asp-route-activityId="@ViewBag.ActivityId" class="mb-4">
+    <input type="hidden" name="page" value="@ViewBag.Page" />
     <div class="row">
         <div class="col-md-4">
             <label for="startDate">Start Date</label>

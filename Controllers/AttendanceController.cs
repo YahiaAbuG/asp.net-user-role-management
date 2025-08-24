@@ -84,6 +84,7 @@ namespace WebApplication5.Controllers
             ViewBag.ActivityId = activityId;
             ViewBag.StartDate = startDate;
             ViewBag.EndDate = endDate;
+            ViewBag.Page = page;
 
             return View(viewModel);
         }
