@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using WebApplication5.Data;
 using WebApplication5.Models;
@@ -87,6 +88,105 @@ namespace WebApplication5.Controllers
             ViewBag.Page = page;
 
             return View(viewModel);
+        }
+
+        // GET: Activities/{activityId}/Attendance/ExportCsv
+        [HttpGet("ExportCsv", Name = "Attendance_ExportCsv")]
+        public async Task<IActionResult> ExportCsv(
+            int activityId,
+            DateTime? startDate,
+            DateTime? endDate,
+            int page = 1,
+            int pageSize = 10)
+        {
+            var activity = await _context.Activity.FindAsync(activityId);
+            if (activity == null) return NotFound();
+
+            // sessions (filterable)
+            var sessionsQuery = _context.AttendanceSessions
+                .Where(s => s.ActivityId == activityId);
+
+            if (startDate.HasValue)
+                sessionsQuery = sessionsQuery.Where(s => s.Date.Date >= startDate.Value.Date);
+            if (endDate.HasValue)
+                sessionsQuery = sessionsQuery.Where(s => s.Date.Date <= endDate.Value.Date);
+
+            var totalSessions = await sessionsQuery.CountAsync();
+            var sessionsPage = await sessionsQuery
+                .OrderBy(s => s.Date)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (sessionsPage.Count == 0)
+                return File(Encoding.UTF8.GetBytes("No data"), "text/csv", "attendance.csv");
+
+            var dates = sessionsPage.Select(s => s.Date.Date).ToList();
+            var sessionIds = sessionsPage.Select(s => s.Id).ToList();
+
+            // all attendance records for these sessions
+            var records = await _context.AttendanceRecords
+                .Where(r => sessionIds.Contains(r.AttendanceSessionId))
+                .ToListAsync();
+
+            // members for this activity
+            var memberUserIds = await _context.UserRoles
+                .Where(ur => ur.ActivityId == activityId)
+                .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .Where(x => x.Name == "ActivityMember")
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            var members = await _context.Users
+                .Where(u => memberUserIds.Contains(u.Id))
+                .OrderBy(u => u.UserName)
+                .Select(u => new { u.Id, u.UserName })
+                .ToListAsync();
+
+            // CSV
+            var sb = new StringBuilder();
+
+            // CSV-safe helper
+            static string Csv(string v)
+            {
+                if (v == null) return "";
+                if (v.Contains('"') || v.Contains(',') || v.Contains('\n') || v.Contains('\r'))
+                    return "\"" + v.Replace("\"", "\"\"") + "\"";
+                return v;
+            }
+
+            // Header
+            sb.Append("Team");
+            foreach (var d in dates)
+                sb.Append(',').Append(Csv(d.ToString("MMMM dd")));
+            sb.Append(",Total Present,Total Days").AppendLine();
+
+            // Rows
+            foreach (var m in members)
+            {
+                var row = new List<string>();
+                row.Add(Csv(m.UserName));
+
+                int totalPresent = 0;
+                foreach (var d in dates)
+                {
+                    var sessionId = sessionsPage.First(s => s.Date.Date == d).Id;
+                    var present = records.Any(r => r.AttendanceSessionId == sessionId && r.UserId == m.Id);
+                    if (present) totalPresent++;
+                    row.Add(present ? "Present" : "Absent");
+                }
+
+                row.Add(totalPresent.ToString());
+                row.Add(dates.Count.ToString());
+                sb.AppendLine(string.Join(",", row));
+            }
+
+            var filename =
+                $"attendance_{activity.Name}_{(startDate?.ToString("yyyyMMdd") ?? "all")}-{(endDate?.ToString("yyyyMMdd") ?? "all")}_p{page}.csv"
+                .Replace(' ', '_');
+
+            return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", filename);
         }
 
         [HttpGet("Sessions")]

@@ -26,6 +26,15 @@
         </div>
         <div class="col-md-4 d-flex align-items-end">
             <button type="submit" class="btn btn-primary">Filter</button>
+            <a class="btn btn-outline-success"
+               asp-route="Attendance_ExportCsv"
+               asp-route-activityId="@ViewBag.ActivityId"
+               asp-route-startDate="@(ViewBag.StartDate?.ToString("yyyy-MM-dd"))"
+               asp-route-endDate="@(ViewBag.EndDate?.ToString("yyyy-MM-dd"))"
+               asp-route-page="@(ViewBag.Page ?? 1)"
+               asp-route-pageSize="7">
+                Export CSV
+            </a>
         </div>
     </div>
 </form>
