@@ -1,10 +1,12 @@
-﻿namespace WebApplication5.Models.ViewModels
+﻿using X.PagedList;
+
+namespace WebApplication5.Models.ViewModels
 {
     public class AttendanceReportViewModel
     {
         public string ActivityName { get; set; }
         public List<DateTime> Dates { get; set; }
-        public List<MemberAttendanceRow> Members { get; set; }
+        public IPagedList<MemberAttendanceRow> Members { get; set; }
     }
 
     public class MemberAttendanceRow

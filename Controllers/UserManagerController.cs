@@ -203,30 +203,6 @@ namespace WebApplication5.Controllers
                         };
 
                         _context.UserRoles.Add(newRole);
-
-                        // If assigning ActivityMember role, also create attendance records
-                        if (model.Form.SelectedRoleName == "ActivityMember" && model.Form.SelectedActivityId.HasValue)
-                        {
-                            var sessionIds = await _context.AttendanceSessions
-                                .Where(s => s.ActivityId == selectedActivityId)
-                                .Select(s => s.Id)
-                                .ToListAsync();
-
-                            var existingSet = await _context.AttendanceRecords
-                                .Where(r => r.UserId == user.Id && sessionIds.Contains(r.AttendanceSessionId))
-                                .Select(r => r.AttendanceSessionId)
-                                .ToListAsync();
-
-                            var missing = sessionIds.Except(existingSet);
-                            foreach (var sid in missing)
-                            {
-                                _context.AttendanceRecords.Add(new AttendanceRecord
-                                {
-                                    AttendanceSessionId = sid,
-                                    UserId = user.Id
-                                });
-                            }
-                        }
                     }
                 }
             }

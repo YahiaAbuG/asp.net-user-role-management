@@ -1,9 +1,12 @@
-﻿@model WebApplication5.Models.ViewModels.AttendanceReportViewModel
+﻿@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model WebApplication5.Models.ViewModels.AttendanceReportViewModel
 
 @{
     ViewData["Title"] = "Attendance Report";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
 <br />
 <h2>Attendance Report for @Model.ActivityName</h2>
 <br />
@@ -12,11 +15,13 @@
     <div class="row">
         <div class="col-md-4">
             <label for="startDate">Start Date</label>
-            <input type="date" class="form-control" id="startDate" name="startDate" value="@ViewBag.StartDate?.ToString("yyyy-MM-dd") ?? " 2025-08-03"">
+            <input type="date" class="form-control" id="startDate" name="startDate"
+                   value="@( (ViewBag.StartDate as DateTime?)?.ToString("yyyy-MM-dd") )">
         </div>
         <div class="col-md-4">
             <label for="endDate">End Date</label>
-            <input type="date" class="form-control" id="endDate" name="endDate" value="@ViewBag.EndDate?.ToString("yyyy-MM-dd") ?? " 2025-08-07"">
+            <input type="date" class="form-control" id="endDate" name="endDate"
+                   value="@( (ViewBag.EndDate as DateTime?)?.ToString("yyyy-MM-dd") )">
         </div>
         <div class="col-md-4 d-flex align-items-end">
             <button type="submit" class="btn btn-primary">Filter</button>
@@ -43,10 +48,12 @@
                 <td>@member.Name</td>
                 @foreach (var present in member.AttendancePerDate)
                 {
-                    <td>@if (present)
+                    <td>
+                        @if (present)
                         {
                             <span class="text-success">Present</span>
-                        } else
+                        }
+                        else
                         {
                             <span class="text-danger">Absent</span>
                         }
@@ -59,7 +66,23 @@
     </tbody>
 </table>
 
+<div class="d-flex justify-content-center mb-3">
+    @Html.PagedListPager(
+        Model.Members,
+        page => Url.RouteUrl("Attendance_Index", new {
+            activityId = ViewBag.ActivityId,
+            page,
+            startDate = (ViewBag.StartDate as DateTime?)?.ToString("yyyy-MM-dd"),
+            endDate   = (ViewBag.EndDate   as DateTime?)?.ToString("yyyy-MM-dd")
+        }),
+        new PagedListRenderOptions {
+            LiElementClasses = new[] { "page-item" },
+            PageClasses      = new[] { "page-link" },
+            UlElementClasses = new[] { "pagination" }
+        }
+    )
+</div>
+
 <a asp-action="Sessions" asp-route-activityId="@ViewBag.ActivityId" class="btn btn-primary">Manage Sessions</a>
-<br />
-<br />
+<br /><br />
 <a asp-controller="Activities" asp-action="Index" class="btn btn-secondary">Back to Activity List</a>
